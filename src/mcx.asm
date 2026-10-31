@@ -54,14 +54,14 @@ main_loop:
         JP      Z,do_drv_left
         CP      KEY_CTRL_R
         JP      Z,do_drv_right
-        ; stubs reserved for iter 3
+        CP      KEY_F5
+        JP      Z,do_copy
+        CP      KEY_F6
+        JP      Z,do_rename
+        ; stubs reserved for later in iter 3
         CP      KEY_F3
         JR      Z,do_stub
         CP      KEY_F4
-        JR      Z,do_stub
-        CP      KEY_F5
-        JR      Z,do_stub
-        CP      KEY_F6
         JR      Z,do_stub
         CP      KEY_ENTER
         JR      Z,do_stub
@@ -71,6 +71,25 @@ do_stub:
         LD      DE,msg_stub
         CALL    status_msg
         JR      main_loop
+
+;------------------------------------------------------------------------------
+; do_copy / do_rename — F5 / F6. Redraw only if a directory changed.
+;------------------------------------------------------------------------------
+do_copy:
+        CALL    file_copy
+        JR      do_file_done
+
+do_rename:
+        CALL    file_rename
+do_file_done:
+        LD      A,(file_dirty)
+        OR      A
+        JR      Z,.df_msg
+        CALL    screen_draw_all
+.df_msg:
+        LD      DE,(file_msg)
+        CALL    status_msg
+        JP      main_loop
 
 ;------------------------------------------------------------------------------
 ; do_quit — restore console and warm-boot
@@ -165,6 +184,19 @@ active_ix:
         LD      IX,panel_left
         RET
 .ai_r:
+        LD      IX,panel_right
+        RET
+
+;------------------------------------------------------------------------------
+; other_ix — set IX to the inactive panel
+;------------------------------------------------------------------------------
+other_ix:
+        LD      A,(active_panel)
+        OR      A
+        JR      Z,.oi_r
+        LD      IX,panel_left
+        RET
+.oi_r:
         LD      IX,panel_right
         RET
 
@@ -267,6 +299,7 @@ panel_right:    DS      PANEL_BYTES
         INCLUDE "keys/keymap.asm"
         INCLUDE "keys/input.asm"
         INCLUDE "fs/dir.asm"
+        INCLUDE "fs/file.asm"
         INCLUDE "ui/panel.asm"
         INCLUDE "ui/status.asm"
         INCLUDE "ui/screen.asm"

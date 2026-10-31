@@ -31,8 +31,9 @@ help_text:
         DB      "  F1         this help",CR,LF
         DB      "  F3         view file (iter 3)",CR,LF
         DB      "  F4         edit file (iter 3)",CR,LF
-        DB      "  F5         copy to other panel (iter 3)",CR,LF
-        DB      "  F6         rename (iter 3)",CR,LF
+        DB      "  F5         copy to the other panel",CR,LF
+        DB      "             same drive: asks for a new name",CR,LF
+        DB      "  F6         rename in this panel",CR,LF
         DB      "  F10        quit to CP/M",CR,LF
         DB      "  Ctrl-L     LEFT panel: drive menu",CR,LF
         DB      "  Ctrl-R     RIGHT panel: drive menu",CR,LF
