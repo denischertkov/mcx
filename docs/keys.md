@@ -1,19 +1,12 @@
 # MCX key sequences (Grant Searle SBC + Linux VT100/ANSI)
 
-Calibrated from KEYPROBE on real hardware (2026-10-31).
+Calibrated with fixed KEYPROBE on real hardware (2026-10-31).
 
-## Bug note (fixed)
+## Confirmed dump
 
-Early KEYPROBE printed `00` as the first byte of every line because
-`bdos_print` clobbered `A` before the hex dump. Trailing ESC bytes inside
-a drained burst were correct (`1B`). Rebuild KEYPROBE after the fix and
-re-check Tab / Enter / BS (expected `09` / `0D` / `08`).
-
-## Decoded map
-
-| Key | Bytes (hex) | VT100 meaning |
-|-----|-------------|----------------|
-| Left | `1B 5B 44` | CSI `D` |
+| Key | Bytes (hex) | Notes |
+|-----|-------------|--------|
+| Left | `1B 5B 44` | CSI `D`; first press after idle sometimes `1B 44` (VT52-style) |
 | Up | `1B 5B 41` | CSI `A` |
 | Right | `1B 5B 43` | CSI `C` |
 | Down | `1B 5B 42` | CSI `B` |
@@ -21,27 +14,27 @@ re-check Tab / Enter / BS (expected `09` / `0D` / `08`).
 | F2 | `1B 4F 51` | SS3 `Q` |
 | F3 | `1B 4F 52` | SS3 `R` |
 | F4 | `1B 4F 53` | SS3 `S` |
-| F5 | `1B 5B 31 35 7E` | CSI `15~` |
+| F5 | `1B 5B 31 35 7E` | CSI `15~` (standard; not in dump — skipped) |
 | F6 | `1B 5B 31 36 7E` | CSI `16~` |
 | F7 | `1B 5B 31 37 7E` | CSI `17~` |
 | F8 | `1B 5B 31 38 7E` | CSI `18~` |
 | F9 | `1B 5B 31 39 7E` | CSI `19~` |
-| F10 | `1B 5B 32 31 7E` | CSI `21~` |
+| F10 | `1B 5B 32 30 7E` / `1B 5B 32 31 7E` | accept both `20~` and `21~` |
+| Tab | `09` | |
+| Enter | `0D` | |
+| BS | `08` | |
 | Del | `1B 5B 33 7E` | CSI `3~` |
-| Tab | `09` (confirm after KEYPROBE fix) | HT |
-| Enter | `0D` (confirm after KEYPROBE fix) | CR |
-| BS | `08` (confirm after KEYPROBE fix) | BS |
+| Ctrl-L | `0C` | left panel drive select |
+| Ctrl-R | `12` | right panel drive select |
+| Ctrl-C | `03` | |
 
-## Alt-F1 / Alt-F2
+## Drive select
 
-Not available: the Linux host captures these combos before they reach the
-serial session.
+Alt-F1/Alt-F2 never reach the serial session (Linux host grabs them).
 
-**MCX fallback (iteration 2+):**
+MCX uses **Ctrl-L** / **Ctrl-R**, then a drive letter `A`..`P`.
 
-| Action | Key |
-|--------|-----|
-| Change left panel drive | `Ctrl-L` then drive letter |
-| Change right panel drive | `Ctrl-R` then drive letter |
+## Parser notes
 
-`Ctrl-L` / `Ctrl-R` should be verified with the fixed KEYPROBE (`0C` / `12`).
+- Accept VT52 arrow forms `ESC A/B/C/D` as well as CSI `ESC [ A/B/C/D` (covers the rare `1B 44` left).
+- After seeing `ESC`, the input reader uses a longer poll budget so `[` is not dropped.

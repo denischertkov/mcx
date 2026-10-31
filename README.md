@@ -18,9 +18,13 @@ export PATH="$HOME/.local/bin:$PATH"
 ## Build
 
 ```bash
-make            # → build/KEYPROBE.COM
+make            # → build/KEYPROBE.COM and build/MCX.COM
+make mcx        # file manager only
+make keyprobe   # calibration tool only
 make clean
 ```
+
+Copy `MCX.COM` to the CP/M machine and run `MCX` or `MCX B: C:`.
 
 ## Iteration 1 — KEYPROBE
 
@@ -49,5 +53,6 @@ build/         generated .COM (gitignored)
 
 ## Status
 
-- **Done:** scaffold, BDOS/ANSI, KEYPROBE (fix: preserve A across BDOS print)
-- **Next:** dual-panel shell + directory listing using [docs/keys.md](docs/keys.md)
+- **Done:** scaffold, KEYPROBE, calibrated keymap ([docs/keys.md](docs/keys.md))
+- **Done (iter 2):** dual panels, dir listing, Tab/arrows, Ctrl-L/R drives, F1 help, F10 quit
+- **Next (iter 3):** F3 view, F4 edit, F5 copy, F6 rename, Enter run
