@@ -1,8 +1,8 @@
 ;==============================================================================
-; mcx.asm — MCX main entry, init, and interactive loop (iteration 2 shell)
+; mcx.asm — MCX main entry, initialization, and interactive loop
 ;
-; Builds MCX.COM. Dual panels, directory listing, navigation, drive change,
-; F1 help, F10 quit. File ops (view/edit/copy/rename/run) come in iteration 3.
+; Builds MCX.COM. Dual panels, navigation, drive selection, text view/edit,
+; copy, rename, delete, help, and quit. Enter-to-run is not implemented.
 ;==============================================================================
 
         OPT     reset
@@ -405,7 +405,7 @@ arg_left:       DB      0
 arg_drives:     DB      0
 
 msg_bye:        DB      "MCX exit",CR,LF,"$"
-msg_stub:       DB      "Not implemented yet (iteration 3)$"
+msg_stub:       DB      "Enter: not implemented yet$"
 
 active_panel:   DB      0
 
