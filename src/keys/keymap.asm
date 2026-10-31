@@ -108,15 +108,15 @@ keymap_lookup_csi:
         JR      NZ,.cn15
         LD      A,KEY_DEL
         RET
-.cn15:  CP      15
+.cn15:  CP      15                       ; common VT220 F5
         JR      NZ,.cn16
         LD      A,KEY_F5
         RET
-.cn16:  CP      16
+.cn16:  CP      16                       ; this minicom sends F5 as 16~
         JR      NZ,.cn17
-        LD      A,KEY_F6
+        LD      A,KEY_F5
         RET
-.cn17:  CP      17                       ; xterm/vt220 F6 — 16~ is skipped
+.cn17:  CP      17                       ; and F6 as 17~
         JR      NZ,.cn18
         LD      A,KEY_F6
         RET
