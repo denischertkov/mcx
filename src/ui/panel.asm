@@ -57,36 +57,22 @@ panel_draw:
 
 .pd_row_loop:
         PUSH    BC
-        ; cursor position
         LD      A,(pd_row)
         LD      B,A
         LD      A,(pd_col)
         LD      C,A
         CALL    term_cup
 
-        CALL    term_rev_off            ; clear cells with normal attribute
-        LD      B,PANEL_WIDTH
-.pd_clr:
-        LD      A,' '
-        CALL    bdos_conout
-        DJNZ    .pd_clr
-
-        ; re-cup
-        LD      A,(pd_row)
-        LD      B,A
-        LD      A,(pd_col)
-        LD      C,A
-        CALL    term_cup
-
-        ; if idx >= count → empty row
+        ; blank if past end of list
         LD      HL,(pd_idx)
         LD      E,(IX+P_COUNT)
         LD      D,(IX+P_COUNT+1)
         OR      A
         SBC     HL,DE
-        JR      NC,.pd_next_row
+        JR      NC,.pd_blank
 
-        ; highlight if idx == cursor and active
+        XOR     A
+        LD      (pd_hi),A
         LD      HL,(pd_idx)
         LD      E,(IX+P_CURSOR)
         LD      D,(IX+P_CURSOR+1)
@@ -96,15 +82,22 @@ panel_draw:
         LD      A,(pd_active)
         OR      A
         JR      Z,.pd_name
-        CALL    term_rev_on
+        LD      A,1
+        LD      (pd_hi),A
 
 .pd_name:
-        CALL    panel_name_at_idx       ; HL → name for pd_idx
+        CALL    panel_name_at_idx
         LD      DE,pd_nbuf
         CALL    panel_fmt_name
         LD      HL,pd_nbuf
-        CALL    term_puts
-        CALL    term_rev_off            ; always reset after row text
+        LD      A,(pd_hi)
+        CALL    panel_put_line
+        JR      .pd_next_row
+
+.pd_blank:
+        LD      HL,pd_empty
+        XOR     A
+        CALL    panel_put_line
 
 .pd_next_row:
         LD      HL,(pd_idx)
@@ -116,6 +109,46 @@ panel_draw:
         POP     BC
         DJNZ    .pd_row_loop
 
+        POP     HL
+        POP     DE
+        POP     BC
+        POP     AF
+        RET
+
+;------------------------------------------------------------------------------
+; panel_put_line — HL → zstring, A≠0 highlight; pad to PANEL_WIDTH, SGR reset
+;------------------------------------------------------------------------------
+panel_put_line:
+        PUSH    AF
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        OR      A
+        JR      Z,.ppl_norm
+        CALL    term_rev_on
+        JR      .ppl_go
+.ppl_norm:
+        CALL    term_rev_off
+.ppl_go:
+        LD      B,PANEL_WIDTH
+.ppl_ch:
+        LD      A,(HL)
+        OR      A
+        JR      Z,.ppl_pad
+        CALL    bdos_conout
+        INC     HL
+        DJNZ    .ppl_ch
+        JR      .ppl_done
+.ppl_pad:
+        LD      A,B
+        OR      A
+        JR      Z,.ppl_done
+.ppl_sp:
+        LD      A,' '
+        CALL    bdos_conout
+        DJNZ    .ppl_sp
+.ppl_done:
+        CALL    term_rev_off
         POP     HL
         POP     DE
         POP     BC
@@ -264,37 +297,26 @@ panel_draw_index:
         LD      C,A
         CALL    term_cup
 
-        CALL    term_rev_off            ; erase with normal attribute
-        LD      B,PANEL_WIDTH
-.pdi_clr:
-        LD      A,' '
-        CALL    bdos_conout
-        DJNZ    .pdi_clr
-
-        LD      A,(pd_row)
-        LD      B,A
-        LD      A,(pd_col)
-        LD      C,A
-        CALL    term_cup
-
-        ; beyond count?
+        ; beyond count? → blank
         LD      HL,(pd_idx)
         LD      E,(IX+P_COUNT)
         LD      D,(IX+P_COUNT+1)
         OR      A
         SBC     HL,DE
-        JR      NC,.pdi_done
-
-        LD      A,(pd_hi)
-        OR      A
-        CALL    NZ,term_rev_on
+        JR      NC,.pdi_blank
 
         CALL    panel_name_at_idx
         LD      DE,pd_nbuf
         CALL    panel_fmt_name
         LD      HL,pd_nbuf
-        CALL    term_puts
-        CALL    term_rev_off            ; always clear reverse after the row
+        LD      A,(pd_hi)
+        CALL    panel_put_line
+        JR      .pdi_done
+
+.pdi_blank:
+        LD      HL,pd_empty
+        XOR     A
+        CALL    panel_put_line
 
 .pdi_done:
         POP     HL
@@ -369,3 +391,4 @@ pd_row:         DB      0
 pd_hi:          DB      0
 pd_idx:         DW      0
 pd_nbuf:        DS      14
+pd_empty:       DB      0

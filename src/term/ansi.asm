@@ -63,20 +63,43 @@ term_cup:
         RET
 
 ;------------------------------------------------------------------------------
-; term_rev_on / term_rev_off — SGR reverse / reset
+; term_rev_on / term_rev_off — SGR reverse via raw CONOUT (not BDOS $ print)
+; Off sends both SGR 0 and SGR 27; some serial ANSI stacks ignore one of them.
 ;------------------------------------------------------------------------------
 term_rev_on:
-        PUSH    DE
-        LD      DE,ansi_rev_on
-        CALL    bdos_print
-        POP     DE
+        PUSH    AF
+        LD      A,ESC
+        CALL    bdos_conout
+        LD      A,'['
+        CALL    bdos_conout
+        LD      A,'7'
+        CALL    bdos_conout
+        LD      A,'m'
+        CALL    bdos_conout
+        POP     AF
         RET
 
 term_rev_off:
-        PUSH    DE
-        LD      DE,ansi_rev_off
-        CALL    bdos_print
-        POP     DE
+        PUSH    AF
+        LD      A,ESC
+        CALL    bdos_conout
+        LD      A,'['
+        CALL    bdos_conout
+        LD      A,'0'
+        CALL    bdos_conout
+        LD      A,'m'
+        CALL    bdos_conout
+        LD      A,ESC
+        CALL    bdos_conout
+        LD      A,'['
+        CALL    bdos_conout
+        LD      A,'2'
+        CALL    bdos_conout
+        LD      A,'7'
+        CALL    bdos_conout
+        LD      A,'m'
+        CALL    bdos_conout
+        POP     AF
         RET
 
 ;------------------------------------------------------------------------------
@@ -146,7 +169,5 @@ term_put_dec:
 ; --- ANSI string constants ($-terminated for BDOS func 9) --------------------
 ansi_cls:       DB      ESC,"[2J",ESC,"[H$"
 ansi_home:      DB      ESC,"[H$"
-ansi_rev_on:    DB      ESC,"[7m$"
-ansi_rev_off:   DB      ESC,"[0m$"
 ansi_curoff:    DB      ESC,"[?25l$"
 ansi_curon:     DB      ESC,"[?25h$"
