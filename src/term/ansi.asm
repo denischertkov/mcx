@@ -64,9 +64,8 @@ term_cup:
 
 ;------------------------------------------------------------------------------
 ; term_rev_on / term_rev_off — SGR 7 / SGR 0 via CONOUT (ATTRTEST T1 path)
-; Preserve AF: callers used to do "CALL term_rev_off / OR A / CALL NZ,rev_on"
-; and BDOS return in A turned every row into a reverse bar.
-; Do NOT use reverse inside ui/drive.asm.
+; Preserve AF. Safe for the single status-bar block; do NOT use in panels
+; (CUP+SGR flood leaves sticky inverse on this minicom path).
 ;------------------------------------------------------------------------------
 term_rev_on:
         PUSH    AF

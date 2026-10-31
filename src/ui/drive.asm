@@ -84,9 +84,6 @@ drive_pick:
 .dp_cancel:
         LD      A,0FFh
 .dp_ret:
-        PUSH    AF
-        CALL    term_rev_off            ; belt-and-braces before panel redraw
-        POP     AF
         POP     HL
         POP     DE
         POP     BC
