@@ -24,7 +24,7 @@ MCX_SRC := src/mcx.asm \
 	src/include/cpm.inc src/include/keys.inc src/include/mcx.inc \
 	src/bdos/bdos.asm src/term/ansi.asm \
 	src/keys/input.asm src/keys/keymap.asm \
-	src/fs/dir.asm src/fs/file.asm src/fs/view.asm \
+	src/fs/dir.asm src/fs/file.asm src/fs/view.asm src/fs/edit.asm \
 	src/ui/panel.asm src/ui/status.asm src/ui/screen.asm src/ui/drive.asm \
 	src/help/help.asm
 

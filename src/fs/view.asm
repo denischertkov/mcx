@@ -19,6 +19,7 @@ VIEW_COLS       EQU     80
 view_show:
         XOR     A
         LD      (view_trunc),A
+        LD      (view_mark),A
         CALL    file_take_current
         JP      C,.vs_nofile
         CALL    view_load
@@ -244,6 +245,9 @@ view_load:
 view_walk:
         LD      HL,(view_pos)
         LD      (vw_off),HL
+        XOR     A
+        LD      (view_hit),A
+        LD      (view_cell),A
         LD      A,1
         LD      (vw_row),A
         LD      A,(view_rows)
@@ -264,6 +268,7 @@ view_walk:
         LD      A,(vw_col)
         CP      VIEW_COLS
         JR      Z,.vw_nextrow
+        CALL    view_note
         CALL    view_peek
         JR      C,.vw_eof
         CP      0Dh
@@ -282,11 +287,7 @@ view_walk:
 .vw_emit:
         LD      C,A
         CALL    view_skip
-        LD      A,(view_draw)
-        OR      A
-        JR      Z,.vw_col1
-        LD      A,C
-        CALL    bdos_conout
+        CALL    view_putch
 .vw_col1:
         LD      HL,vw_col
         INC     (HL)
@@ -297,11 +298,8 @@ view_walk:
         LD      A,(vw_col)
         CP      VIEW_COLS
         JR      Z,.vw_nextrow
-        LD      A,(view_draw)
-        OR      A
-        JR      Z,.vw_tabc
-        LD      A,' '
-        CALL    bdos_conout
+        LD      C,' '
+        CALL    view_putch
 .vw_tabc:
         LD      HL,vw_col
         INC     (HL)
@@ -310,6 +308,12 @@ view_walk:
         JR      NZ,.vw_tabsp
         JR      .vw_ch
 .vw_cr:
+        LD      A,(view_cell)
+        OR      A
+        JR      Z,.vw_cr2
+        LD      C,' '
+        CALL    view_putch
+.vw_cr2:
         CALL    view_skip
         CALL    view_peek
         JR      C,.vw_nextrow
@@ -318,6 +322,12 @@ view_walk:
         CALL    view_skip
         JR      .vw_nextrow
 .vw_lf:
+        LD      A,(view_cell)
+        OR      A
+        JR      Z,.vw_lf2
+        LD      C,' '
+        CALL    view_putch
+.vw_lf2:
         CALL    view_skip
 .vw_nextrow:
         LD      HL,vw_row
@@ -327,6 +337,12 @@ view_walk:
         JP      NZ,.vw_row
         JR      .vw_set
 .vw_eof:
+        LD      A,(view_cell)
+        OR      A
+        JR      Z,.vw_eof2
+        LD      C,' '
+        CALL    view_putch
+.vw_eof2:
         POP     BC
         LD      A,1
         LD      (view_eof),A
@@ -374,6 +390,47 @@ view_skip:
         POP     HL
         RET
 
+; view_note — if marking and vw_off is the cursor, remember the cell
+view_note:
+        XOR     A
+        LD      (view_cell),A
+        LD      A,(view_mark)
+        OR      A
+        RET     Z
+        PUSH    HL
+        LD      HL,(vw_off)
+        LD      DE,(view_at)
+        OR      A
+        SBC     HL,DE
+        POP     HL
+        RET     NZ
+        LD      A,1
+        LD      (view_cell),A
+        LD      (view_hit),A
+        LD      A,(vw_row)
+        LD      (view_mrow),A
+        LD      A,(vw_col)
+        LD      (view_mcol),A
+        RET
+
+; view_putch — print C. Reverse when view_cell is set. No-op if not drawing.
+view_putch:
+        LD      A,(view_draw)
+        OR      A
+        JR      Z,.vpc_clr
+        LD      A,(view_cell)
+        OR      A
+        CALL    NZ,term_rev_on
+        LD      A,C
+        CALL    bdos_conout
+        LD      A,(view_cell)
+        OR      A
+        CALL    NZ,term_rev_off
+.vpc_clr:
+        XOR     A
+        LD      (view_cell),A
+        RET
+
 ;------------------------------------------------------------------------------
 ; view_footer — name on row 23, key hint on row 24
 ;------------------------------------------------------------------------------
@@ -410,6 +467,12 @@ view_footer:
 
 view_draw:      DB      0
 view_rows:      DB      VIEW_ROWS
+view_mark:      DB      0
+view_cell:      DB      0
+view_hit:       DB      0
+view_mrow:      DB      1
+view_mcol:      DB      0
+view_at:        DW      0
 view_trunc:     DB      0
 view_eof:       DB      0
 view_pos:       DW      0

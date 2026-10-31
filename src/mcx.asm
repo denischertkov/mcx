@@ -62,7 +62,7 @@ main_loop:
         JP      Z,do_rename
         ; stubs reserved for later in iter 3
         CP      KEY_F4
-        JR      Z,do_stub
+        JP      Z,do_edit
         CP      KEY_ENTER
         JR      Z,do_stub
         JR      main_loop
@@ -75,6 +75,16 @@ do_stub:
 ;------------------------------------------------------------------------------
 ; do_copy / do_rename — F5 / F6. Redraw only if a directory changed.
 ;------------------------------------------------------------------------------
+do_edit:
+        CALL    edit_show
+        JR      C,.de_msg
+        CALL    screen_draw_all
+        JP      main_loop
+.de_msg:
+        LD      DE,(view_msg)
+        CALL    status_msg
+        JP      main_loop
+
 do_view:
         CALL    view_show
         JR      C,.dv_msg
@@ -311,6 +321,7 @@ panel_right:    DS      PANEL_BYTES
         INCLUDE "fs/dir.asm"
         INCLUDE "fs/file.asm"
         INCLUDE "fs/view.asm"
+        INCLUDE "fs/edit.asm"
         INCLUDE "ui/panel.asm"
         INCLUDE "ui/status.asm"
         INCLUDE "ui/screen.asm"

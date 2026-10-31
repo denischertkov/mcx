@@ -42,11 +42,13 @@ keys_get:
         JR      Z,.kg_csi
         CP      'O'
         JR      Z,.kg_ss3
-        ; VT52-style ESC A/B/C/D (and bare ESC D seen on hardware)
+        ; VT52 arrows, or Esc followed by a byte that is not a CSI/SS3
+        ; sequence. A bare Esc still times out above. PgUp/PgDn are CSI and
+        ; are not handled here.
         CALL    keymap_lookup_vt52
         CP      KEY_NONE
         RET     NZ
-        LD      A,KEY_NONE
+        LD      A,KEY_ESC
         RET
 
 ; CSI: ESC [ ... letter-or-tilde
