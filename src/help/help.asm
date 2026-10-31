@@ -22,7 +22,7 @@ help_show:
 help_text:
         DB      "MCX - dual-panel file manager for CP/M 2.2",CR,LF
         DB      CR,LF
-        DB      "Usage: MCX [d:] [d:]   start drives for L/R panels",CR,LF
+        DB      "Usage: MCX [d:] [d:] [/c|/b]   /c color, /b mono",CR,LF
         DB      CR,LF
         DB      "Keys:",CR,LF
         DB      "  Arrows     move cursor in active panel",CR,LF
