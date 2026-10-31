@@ -1,0 +1,5 @@
+build/
+*.lst
+*.lab
+*.sym
+*.exp
