@@ -24,6 +24,7 @@ panel_draw:
         LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
+        CALL    term_rev_off            ; never paint while reverse is stuck on
 
         ; header row 1: " A: " or reverse if active
         LD      B,1
@@ -44,10 +45,7 @@ panel_draw:
         CALL    bdos_conout
         LD      A,' '
         CALL    bdos_conout
-
-        LD      A,(pd_active)
-        OR      A
-        CALL    NZ,term_rev_off
+        CALL    term_rev_off            ; always reset after header
 
         ; list rows 2 .. 2+PANEL_ROWS-1
         LD      L,(IX+P_SCROLL)
@@ -66,7 +64,7 @@ panel_draw:
         LD      C,A
         CALL    term_cup
 
-        ; clear panel width with spaces first
+        CALL    term_rev_off            ; clear cells with normal attribute
         LD      B,PANEL_WIDTH
 .pd_clr:
         LD      A,' '
@@ -94,17 +92,11 @@ panel_draw:
         LD      D,(IX+P_CURSOR+1)
         OR      A
         SBC     HL,DE
-        JR      NZ,.pd_no_hi
+        JR      NZ,.pd_name
         LD      A,(pd_active)
         OR      A
-        JR      Z,.pd_no_hi
+        JR      Z,.pd_name
         CALL    term_rev_on
-        LD      A,1
-        LD      (pd_hi),A
-        JR      .pd_name
-.pd_no_hi:
-        XOR     A
-        LD      (pd_hi),A
 
 .pd_name:
         CALL    panel_name_at_idx       ; HL → name for pd_idx
@@ -112,10 +104,7 @@ panel_draw:
         CALL    panel_fmt_name
         LD      HL,pd_nbuf
         CALL    term_puts
-
-        LD      A,(pd_hi)
-        OR      A
-        CALL    NZ,term_rev_off
+        CALL    term_rev_off            ; always reset after row text
 
 .pd_next_row:
         LD      HL,(pd_idx)
@@ -224,6 +213,7 @@ panel_draw_header:
         LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
+        CALL    term_rev_off
         LD      B,1
         CALL    term_cup
         LD      A,(pd_active)
@@ -238,9 +228,7 @@ panel_draw_header:
         CALL    bdos_conout
         LD      A,' '
         CALL    bdos_conout
-        LD      A,(pd_active)
-        OR      A
-        CALL    NZ,term_rev_off
+        CALL    term_rev_off
         POP     BC
         POP     AF
         RET
@@ -276,6 +264,7 @@ panel_draw_index:
         LD      C,A
         CALL    term_cup
 
+        CALL    term_rev_off            ; erase with normal attribute
         LD      B,PANEL_WIDTH
 .pdi_clr:
         LD      A,' '
@@ -305,10 +294,7 @@ panel_draw_index:
         CALL    panel_fmt_name
         LD      HL,pd_nbuf
         CALL    term_puts
-
-        LD      A,(pd_hi)
-        OR      A
-        CALL    NZ,term_rev_off
+        CALL    term_rev_off            ; always clear reverse after the row
 
 .pdi_done:
         POP     HL

@@ -84,6 +84,9 @@ drive_pick:
 .dp_cancel:
         LD      A,0FFh
 .dp_ret:
+        PUSH    AF
+        CALL    term_rev_off            ; CLS does not clear SGR — drop reverse
+        POP     AF
         POP     HL
         POP     DE
         POP     BC
