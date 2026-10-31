@@ -21,16 +21,16 @@ status_draw_fkeys:
         LD      B,24
         LD      C,1
         CALL    term_cup
-        LD      B,SCR_COLS
-.sdf_clr:
-        LD      A,' '
-        CALL    bdos_conout
-        DJNZ    .sdf_clr
-        LD      B,24
-        LD      C,1
-        CALL    term_cup
+        CALL    term_rev_off
+        CALL    term_rev_on
         LD      DE,msg_fkeys
         CALL    bdos_print
+        LD      B,12
+.sdf_pad:
+        LD      A,' '
+        CALL    bdos_conout
+        DJNZ    .sdf_pad
+        CALL    term_rev_off
         POP     DE
         POP     BC
         RET
@@ -101,7 +101,7 @@ status_prompt_drv:
         RET
 
 msg_fkeys:
-        DB      "MCX0.2j 1Help 3View 4Edit 5Copy 6Ren 10Quit"
+        DB      "MCX0.2k 1Help 3View 4Edit 5Copy 6Ren 10Quit"
         DB      " ^L/^R drive Tab$"
 
 msg_drv_prompt:

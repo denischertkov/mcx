@@ -21,6 +21,7 @@ screen_draw_all:
         PUSH    HL
         PUSH    IX
 
+        CALL    term_rev_off
         CALL    term_cls
 
         LD      IX,panel_left

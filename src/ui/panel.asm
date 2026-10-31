@@ -1,23 +1,15 @@
 ;==============================================================================
-; ui/panel.asm — draw one file panel and manage cursor/scroll
+; ui/panel.asm — dual-panel drawing and cursor movement
 ;
-; Public entry points:
-;   panel_draw / panel_draw_header / panel_draw_index
-;   panel_cursor_up / panel_cursor_down / panel_fmt_name
-;
-; Selection is ASCII-only. This console accepts SGR 7 (reverse) but does not
-; reliably clear it, so reverse leaks onto every visited row.
-; Cursor line:  ">>> NAME"
-; Other lines:  "    NAME"
-; Active hdr:   ">>> A: "
-; Inactive hdr: "    A: "
+; Cursor = reverse-video bar (ESC[7m ... ESC[0m), full panel width.
+; Drive menu must never use SGR reverse (see ui/drive.asm).
 ;==============================================================================
 
         INCLUDE "include/cpm.inc"
         INCLUDE "include/mcx.inc"
 
 ;------------------------------------------------------------------------------
-; panel_draw
+; panel_draw — IX=panel, C=col, A≠0 active
 ;------------------------------------------------------------------------------
 panel_draw:
         PUSH    AF
@@ -90,6 +82,7 @@ panel_draw:
         POP     BC
         DJNZ    .pd_row_loop
 
+        CALL    term_rev_off
         POP     HL
         POP     DE
         POP     BC
@@ -97,42 +90,17 @@ panel_draw:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_put_line — HL → name, A≠0 cursor (">>> ") / else ("    "); pad width
+; panel_put_line — HL→name, A≠0 reverse bar; always ends with SGR0
 ;------------------------------------------------------------------------------
 panel_put_line:
         PUSH    AF
         PUSH    BC
         PUSH    DE
         PUSH    HL
-        LD      B,PANEL_WIDTH
+        CALL    term_rev_off
         OR      A
-        JR      Z,.ppl_norm
-        LD      A,'>'
-        CALL    bdos_conout
-        DEC     B
-        LD      A,'>'
-        CALL    bdos_conout
-        DEC     B
-        LD      A,'>'
-        CALL    bdos_conout
-        DEC     B
-        LD      A,' '
-        CALL    bdos_conout
-        DEC     B
-        JR      .ppl_ch
-.ppl_norm:
-        LD      A,' '
-        CALL    bdos_conout
-        DEC     B
-        LD      A,' '
-        CALL    bdos_conout
-        DEC     B
-        LD      A,' '
-        CALL    bdos_conout
-        DEC     B
-        LD      A,' '
-        CALL    bdos_conout
-        DEC     B
+        CALL    NZ,term_rev_on
+        LD      B,PANEL_WIDTH
 .ppl_ch:
         LD      A,B
         OR      A
@@ -153,14 +121,13 @@ panel_put_line:
         CALL    bdos_conout
         DJNZ    .ppl_sp
 .ppl_done:
+        CALL    term_rev_off
         POP     HL
         POP     DE
         POP     BC
         POP     AF
         RET
 
-;------------------------------------------------------------------------------
-; panel_name_at_idx
 ;------------------------------------------------------------------------------
 panel_name_at_idx:
         LD      HL,(pd_idx)
@@ -177,8 +144,6 @@ panel_name_at_idx:
         ADD     HL,DE
         RET
 
-;------------------------------------------------------------------------------
-; panel_fmt_name
 ;------------------------------------------------------------------------------
 panel_fmt_name:
         PUSH    BC
@@ -238,7 +203,7 @@ panel_fmt_name:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_draw_header — active ">>> A: " / inactive "    A: "
+; panel_draw_header — active header in reverse
 ;------------------------------------------------------------------------------
 panel_draw_header:
         PUSH    AF
@@ -246,26 +211,12 @@ panel_draw_header:
         LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
+        CALL    term_rev_off
         LD      B,1
         CALL    term_cup
         LD      A,(pd_active)
         OR      A
-        JR      Z,.pdh_inact
-        LD      A,'>'
-        CALL    bdos_conout
-        LD      A,'>'
-        CALL    bdos_conout
-        LD      A,'>'
-        CALL    bdos_conout
-        JR      .pdh_drv
-.pdh_inact:
-        LD      A,' '
-        CALL    bdos_conout
-        LD      A,' '
-        CALL    bdos_conout
-        LD      A,' '
-        CALL    bdos_conout
-.pdh_drv:
+        CALL    NZ,term_rev_on
         LD      A,' '
         CALL    bdos_conout
         LD      A,(IX+P_DRIVE)
@@ -275,14 +226,18 @@ panel_draw_header:
         CALL    bdos_conout
         LD      A,' '
         CALL    bdos_conout
+        LD      B,8
+.pdh_pad:
+        LD      A,' '
         CALL    bdos_conout
-        CALL    bdos_conout
+        DJNZ    .pdh_pad
+        CALL    term_rev_off
         POP     BC
         POP     AF
         RET
 
 ;------------------------------------------------------------------------------
-; panel_draw_index
+; panel_draw_index — one row; A≠0 = reverse cursor
 ;------------------------------------------------------------------------------
 panel_draw_index:
         PUSH    AF
@@ -337,8 +292,6 @@ panel_draw_index:
         POP     AF
         RET
 
-;------------------------------------------------------------------------------
-; panel_cursor_up / down
 ;------------------------------------------------------------------------------
 panel_cursor_up:
         LD      L,(IX+P_CURSOR)
