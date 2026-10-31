@@ -13,7 +13,7 @@
 ;   bdos_set_drv  A = drive (0=A)
 ;   bdos_set_dma  DE = DMA address
 ;   bdos_sfirst   DE = FCB → A = 0..3 code or 0FFh
-;   bdos_snext    → A = 0..3 or 0FFh
+;   bdos_snext    DE → same FCB as sfirst → A = 0..3 or 0FFh
 ;==============================================================================
 
         INCLUDE "include/cpm.inc"
@@ -163,7 +163,7 @@ bdos_sfirst:
         RET
 
 ;------------------------------------------------------------------------------
-; bdos_snext — search next; A=0..3 or 0FFh=none
+; bdos_snext — search next; DE → FCB (same as sfirst); A=0..3 or 0FFh=none
 ;------------------------------------------------------------------------------
 bdos_snext:
         PUSH    BC

@@ -40,9 +40,14 @@ dir_load:
         LD      (HL),'?'
         INC     HL
         DJNZ    .dl_wild
+        ; Clear EX..CR so search state starts clean
+        LD      HL,dir_fcb+FCB_EX
+        LD      B,FCB_SIZE-FCB_EX
         XOR     A
-        LD      (dir_fcb+FCB_EX),A
-        LD      (dir_fcb+FCB_CR),A
+.dl_zfcb:
+        LD      (HL),A
+        INC     HL
+        DJNZ    .dl_zfcb
 
         LD      DE,DMA_DEFAULT
         CALL    bdos_set_dma
@@ -80,6 +85,8 @@ dir_load:
 .dl_skip:
         POP     AF
 .dl_next:
+        ; BDOS func 18 requires DE → same FCB as search first
+        LD      DE,dir_fcb
         CALL    bdos_snext
         CP      0FFh
         JR      NZ,.dl_store
