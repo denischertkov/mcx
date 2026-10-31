@@ -63,9 +63,9 @@ term_cup:
         RET
 
 ;------------------------------------------------------------------------------
-; term_rev_on / term_rev_off — SGR 7 / SGR 0 via CONOUT (ATTRTEST T1 path)
-; Preserve AF. Safe for the single status-bar block; do NOT use in panels
-; (CUP+SGR flood leaves sticky inverse on this minicom path).
+; term_rev_on / term_rev_off — SGR 7 / SGR 0+27 via CONOUT (ATTRTEST path)
+; Preserve AF. Off sends both [0m and [27m (ATTRTEST T1+T2).
+; Panels: reverse only the cursor row. Never in ui/drive.asm.
 ;------------------------------------------------------------------------------
 term_rev_on:
         PUSH    AF
@@ -87,6 +87,16 @@ term_rev_off:
         LD      A,'['
         CALL    bdos_conout
         LD      A,'0'
+        CALL    bdos_conout
+        LD      A,'m'
+        CALL    bdos_conout
+        LD      A,ESC
+        CALL    bdos_conout
+        LD      A,'['
+        CALL    bdos_conout
+        LD      A,'2'
+        CALL    bdos_conout
+        LD      A,'7'
         CALL    bdos_conout
         LD      A,'m'
         CALL    bdos_conout

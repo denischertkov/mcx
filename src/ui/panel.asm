@@ -1,12 +1,10 @@
 ;==============================================================================
 ; ui/panel.asm — dual-panel drawing and cursor movement
 ;
-; Cursor is ASCII-only: " >NAME" on the active row, "  NAME" elsewhere.
-; Active header: ">B: "; inactive: " B: ".
-;
-; SGR reverse works in ATTRTEST and the status bar, but floods of CUP+SGR
-; while drawing panels leave sticky inverse blocks on this minicom path.
-; Keep reverse out of panels (and out of ui/drive.asm).
+; Cursor = reverse-video bar on the active row only (ESC[7m … ESC[0m/27m).
+; Headers and the drive picker never use SGR — that path caused sticky inverse
+; after ^L/^R. ATTRTEST proves the terminal resets reverse; we only highlight
+; one row and always pad to PANEL_WIDTH so cells are rewritten normal.
 ;==============================================================================
 
         INCLUDE "include/cpm.inc"
@@ -23,6 +21,7 @@ panel_draw:
         LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
+        CALL    term_rev_off
         LD      A,(pd_active)
         CALL    panel_draw_header
 
@@ -86,6 +85,7 @@ panel_draw:
         POP     BC
         DJNZ    .pd_row_loop
 
+        CALL    term_rev_off
         POP     HL
         POP     DE
         POP     BC
@@ -93,26 +93,22 @@ panel_draw:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_put_line — HL→name, A≠0 cursor row; no SGR
-; Layout: [mark][space][name…] padded to PANEL_WIDTH. Mark is '>' or ' '.
+; panel_put_line — HL→name, A≠0 reverse bar; full PANEL_WIDTH; ends SGR off
+; Branch on A BEFORE any rev_* call (those may clobber A).
 ;------------------------------------------------------------------------------
 panel_put_line:
         PUSH    BC
         PUSH    DE
         PUSH    HL
         LD      (pd_hi),A
-        LD      A,' '
-        LD      B,A                      ; mark = space
-        LD      A,(pd_hi)
         OR      A
-        JR      Z,.ppl_mark
-        LD      B,'>'
-.ppl_mark:
-        LD      A,B
-        CALL    bdos_conout
-        LD      A,' '
-        CALL    bdos_conout
-        LD      B,PANEL_WIDTH-2
+        JR      Z,.ppl_norm
+        CALL    term_rev_on
+        JR      .ppl_go
+.ppl_norm:
+        CALL    term_rev_off
+.ppl_go:
+        LD      B,PANEL_WIDTH
 .ppl_ch:
         LD      A,B
         OR      A
@@ -133,6 +129,7 @@ panel_put_line:
         CALL    bdos_conout
         DJNZ    .ppl_sp
 .ppl_done:
+        CALL    term_rev_off
         POP     HL
         POP     DE
         POP     BC
@@ -213,22 +210,17 @@ panel_fmt_name:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_draw_header — ">D: " when active, " D: " when not; pad to PANEL_WIDTH
+; panel_draw_header — plain " D: " (no SGR); pad to PANEL_WIDTH
 ;------------------------------------------------------------------------------
 panel_draw_header:
         PUSH    AF
         PUSH    BC
-        LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
         LD      B,1
         CALL    term_cup
-        LD      A,(pd_active)
-        OR      A
+        CALL    term_rev_off
         LD      A,' '
-        JR      Z,.pdh_mark
-        LD      A,'>'
-.pdh_mark:
         CALL    bdos_conout
         LD      A,(IX+P_DRIVE)
         ADD     A,'A'
@@ -247,7 +239,7 @@ panel_draw_header:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_draw_index — one row; A≠0 = cursor mark
+; panel_draw_index — one row; A≠0 = reverse cursor
 ;------------------------------------------------------------------------------
 panel_draw_index:
         PUSH    AF

@@ -3,7 +3,7 @@
 ;
 ; Public entry points:
 ;   screen_draw_all     full clear + both panels + chrome
-;   screen_tab_switch   after active_panel flipped — headers + highlights only
+;   screen_tab_switch   after active_panel flipped — both panels (no CLS)
 ;   screen_nav_update   after cursor move: DE=old cursor, BC=old scroll (active)
 ;
 ; Globals: panel_left, panel_right, active_panel
@@ -21,6 +21,7 @@ screen_draw_all:
         PUSH    HL
         PUSH    IX
 
+        CALL    term_rev_off
         CALL    term_cls
 
         LD      IX,panel_left
@@ -37,6 +38,7 @@ screen_draw_all:
         PUSH    BC
         LD      C,40
         CALL    term_cup
+        CALL    term_rev_off
         LD      A,'|'
         CALL    bdos_conout
         POP     BC
@@ -65,7 +67,7 @@ screen_draw_all:
         RET
 
 ;------------------------------------------------------------------------------
-; screen_tab_switch — active_panel already updated
+; screen_tab_switch — repaint both panels (avoids half-updated cursor marks)
 ;------------------------------------------------------------------------------
 screen_tab_switch:
         PUSH    AF
@@ -74,48 +76,25 @@ screen_tab_switch:
         PUSH    HL
         PUSH    IX
 
-        ; headers
+        CALL    term_rev_off
+
         LD      IX,panel_left
         LD      C,1
         LD      A,(active_panel)
         OR      A
         LD      A,0
-        JR      NZ,.st_lh
+        JR      NZ,.st_li
         LD      A,1
-.st_lh: CALL    panel_draw_header
+.st_li: CALL    panel_draw
 
         LD      IX,panel_right
         LD      C,41
         LD      A,(active_panel)
         OR      A
         LD      A,0
-        JR      Z,.st_rh
+        JR      Z,.st_ri
         LD      A,1
-.st_rh: CALL    panel_draw_header
-
-        ; left cursor line
-        LD      IX,panel_left
-        LD      L,(IX+P_CURSOR)
-        LD      H,(IX+P_CURSOR+1)
-        LD      C,1
-        LD      A,(active_panel)
-        OR      A
-        LD      A,0
-        JR      NZ,.st_lc
-        LD      A,1
-.st_lc: CALL    panel_draw_index
-
-        ; right cursor line
-        LD      IX,panel_right
-        LD      L,(IX+P_CURSOR)
-        LD      H,(IX+P_CURSOR+1)
-        LD      C,41
-        LD      A,(active_panel)
-        OR      A
-        LD      A,0
-        JR      Z,.st_rc
-        LD      A,1
-.st_rc: CALL    panel_draw_index
+.st_ri: CALL    panel_draw
 
         POP     IX
         POP     HL
