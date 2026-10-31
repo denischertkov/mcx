@@ -14,16 +14,19 @@ Calibrated with fixed KEYPROBE on real hardware (2026-10-31).
 | F2 | `1B 4F 51` | SS3 `Q` |
 | F3 | `1B 4F 52` | SS3 `R` |
 | F4 | `1B 4F 53` | SS3 `S` |
-| F5 | `1B 5B 31 35 7E` | CSI `15~` (standard; not in dump — skipped) |
-| F6 | `1B 5B 31 36 7E` | CSI `16~` |
-| F7 | `1B 5B 31 37 7E` | CSI `17~` |
-| F8 | `1B 5B 31 38 7E` | CSI `18~` |
-| F9 | `1B 5B 31 39 7E` | CSI `19~` |
-| F10 | `1B 5B 32 30 7E` / `1B 5B 32 31 7E` | accept both `20~` and `21~` |
+| F5 | `1B 5B 31 36 7E` | CSI `16~` on this minicom; `15~` also accepted |
+| F6 | `1B 5B 31 37 7E` | CSI `17~` |
+| F7 | `1B 5B 31 38 7E` | CSI `18~` |
+| F8 | `1B 5B 31 39 7E` | CSI `19~` |
+| F9 | `1B 5B 32 30 7E` | CSI `20~` (xterm). Not F10 |
+| F10 | `1B 5B 32 31 7E` | CSI `21~` |
+| Esc | `1B`, or `1B` plus a non-CSI byte, or `1B 5B 32 37 7E` | bare Esc, Esc+junk, CSI `27~` |
 | Tab | `09` | |
 | Enter | `0D` | |
 | BS | `08` | |
 | Del | `1B 5B 33 7E` | CSI `3~` |
+| PgUp | `1B 5B 35 7E` | CSI `5~` |
+| PgDn | `1B 5B 36 7E` | CSI `6~` |
 | Ctrl-L | `0C` | left panel drive select |
 | Ctrl-R | `12` | right panel drive select |
 | Ctrl-C | `03` | |

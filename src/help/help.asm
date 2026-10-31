@@ -29,10 +29,10 @@ help_text:
         DB      "  Tab        switch active panel",CR,LF
         DB      "  Enter      run .COM (iter 3)",CR,LF
         DB      "  F1         this help",CR,LF
-        DB      "  F3         view file (iter 3)",CR,LF
-        DB      "  F4         edit file (iter 3)",CR,LF
-        DB      "  F5         copy to other panel (iter 3)",CR,LF
-        DB      "  F6         rename (iter 3)",CR,LF
+        DB      "  F3         view file",CR,LF
+        DB      "  F4         edit file (F2 save, Esc exit)",CR,LF
+        DB      "  F5         copy to the other panel's drive",CR,LF
+        DB      "  F6         rename in this panel",CR,LF
         DB      "  F10        quit to CP/M",CR,LF
         DB      "  Ctrl-L     LEFT panel: drive menu",CR,LF
         DB      "  Ctrl-R     RIGHT panel: drive menu",CR,LF

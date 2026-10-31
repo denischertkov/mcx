@@ -105,36 +105,48 @@ keymap_lookup_csi:
         ; HL = number
         LD      A,L
         CP      3
-        JR      NZ,.cn15
+        JR      NZ,.cn5
         LD      A,KEY_DEL
         RET
-.cn15:  CP      15
+.cn5:   CP      5                        ; PgUp  ESC [ 5 ~
+        JR      NZ,.cn6
+        LD      A,KEY_PGUP
+        RET
+.cn6:   CP      6                        ; PgDn  ESC [ 6 ~
+        JR      NZ,.cn15
+        LD      A,KEY_PGDN
+        RET
+.cn15:  CP      15                       ; common VT220 F5
         JR      NZ,.cn16
         LD      A,KEY_F5
         RET
-.cn16:  CP      16
+.cn16:  CP      16                       ; this minicom sends F5 as 16~
         JR      NZ,.cn17
+        LD      A,KEY_F5
+        RET
+.cn17:  CP      17                       ; and F6 as 17~
+        JR      NZ,.cn18
         LD      A,KEY_F6
         RET
-.cn17:  CP      17
-        JR      NZ,.cn18
+.cn18:  CP      18                       ; xterm F7
+        JR      NZ,.cn19
         LD      A,KEY_F7
         RET
-.cn18:  CP      18
-        JR      NZ,.cn19
+.cn19:  CP      19                       ; xterm F8
+        JR      NZ,.cn20
         LD      A,KEY_F8
         RET
-.cn19:  CP      19
-        JR      NZ,.cn20
+.cn20:  CP      20                       ; xterm F9 — was bound to F10
+        JR      NZ,.cn21
         LD      A,KEY_F9
         RET
-.cn20:  CP      20                       ; some terminals: F10 = 20~
-        JR      NZ,.cn21
+.cn21:  CP      21                       ; xterm F10
+        JR      NZ,.cn27
         LD      A,KEY_F10
         RET
-.cn21:  CP      21                       ; xterm F10
+.cn27:  CP      27                       ; Esc encoded as CSI 27~
         JR      NZ,.csi_none
-        LD      A,KEY_F10
+        LD      A,KEY_ESC
         RET
 
 .csi_none:
