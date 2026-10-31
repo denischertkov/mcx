@@ -3,6 +3,8 @@
 ;
 ; Public entry points:
 ;   panel_draw        IX → panel, C = left col (1-based), A≠0 if active
+;   panel_draw_header IX, C=col, A≠0 active — "[A:]" or " A: ", no SGR
+;   panel_draw_index  IX, C=col, HL=file index, A≠0 reverse — one list row
 ;   panel_cursor_up   IX → panel
 ;   panel_cursor_down IX → panel
 ;   panel_fmt_name    HL → 11-char FCB name, DE → dest buffer (13 bytes max)
@@ -22,30 +24,8 @@ panel_draw:
         LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
-
-        ; header row 1: " A: " or reverse if active
-        LD      B,1
-        LD      A,(pd_col)
-        LD      C,A
-        CALL    term_cup
-
         LD      A,(pd_active)
-        OR      A
-        CALL    NZ,term_rev_on
-
-        LD      A,' '
-        CALL    bdos_conout
-        LD      A,(IX+P_DRIVE)
-        ADD     A,'A'
-        CALL    bdos_conout
-        LD      A,':'
-        CALL    bdos_conout
-        LD      A,' '
-        CALL    bdos_conout
-
-        LD      A,(pd_active)
-        OR      A
-        CALL    NZ,term_rev_off
+        CALL    panel_draw_header
 
         ; list rows 2 .. 2+PANEL_ROWS-1
         LD      L,(IX+P_SCROLL)
@@ -57,63 +37,27 @@ panel_draw:
 
 .pd_row_loop:
         PUSH    BC
-        ; cursor position
-        LD      A,(pd_row)
-        LD      B,A
-        LD      A,(pd_col)
-        LD      C,A
-        CALL    term_cup
-
-        ; clear panel width with spaces first
-        LD      B,PANEL_WIDTH
-.pd_clr:
-        LD      A,' '
-        CALL    bdos_conout
-        DJNZ    .pd_clr
-
-        ; re-cup
-        LD      A,(pd_row)
-        LD      B,A
-        LD      A,(pd_col)
-        LD      C,A
-        CALL    term_cup
-
-        ; if idx >= count → empty row
+        XOR     A
+        LD      (pd_hi),A
         LD      HL,(pd_idx)
         LD      E,(IX+P_COUNT)
         LD      D,(IX+P_COUNT+1)
         OR      A
         SBC     HL,DE
-        JR      NC,.pd_next_row
-
-        ; highlight if idx == cursor and active
+        JR      NC,.pd_paint
         LD      HL,(pd_idx)
         LD      E,(IX+P_CURSOR)
         LD      D,(IX+P_CURSOR+1)
         OR      A
         SBC     HL,DE
-        JR      NZ,.pd_no_hi
+        JR      NZ,.pd_paint
         LD      A,(pd_active)
         OR      A
-        JR      Z,.pd_no_hi
-        CALL    term_rev_on
+        JR      Z,.pd_paint
         LD      A,1
         LD      (pd_hi),A
-        JR      .pd_name
-.pd_no_hi:
-        XOR     A
-        LD      (pd_hi),A
-
-.pd_name:
-        CALL    panel_name_at_idx       ; HL → name for pd_idx
-        LD      DE,pd_nbuf
-        CALL    panel_fmt_name
-        LD      HL,pd_nbuf
-        CALL    term_puts
-
-        LD      A,(pd_hi)
-        OR      A
-        CALL    NZ,term_rev_off
+.pd_paint:
+        CALL    panel_paint_row
 
 .pd_next_row:
         LD      HL,(pd_idx)
@@ -127,6 +71,126 @@ panel_draw:
 
         POP     HL
         POP     DE
+        POP     BC
+        POP     AF
+        RET
+
+;------------------------------------------------------------------------------
+; panel_draw_header — "[D:]" if A≠0, else " D: "; no reverse
+;------------------------------------------------------------------------------
+panel_draw_header:
+        PUSH    AF
+        PUSH    BC
+        LD      (pd_active),A
+        LD      A,C
+        LD      (pd_col),A
+        CALL    term_rev_off
+        LD      B,1
+        LD      A,(pd_col)
+        LD      C,A
+        CALL    term_cup
+        LD      A,(pd_active)
+        OR      A
+        LD      A,' '
+        JR      Z,.pdh_open
+        LD      A,'['
+.pdh_open:
+        CALL    bdos_conout
+        LD      A,(IX+P_DRIVE)
+        ADD     A,'A'
+        CALL    bdos_conout
+        LD      A,':'
+        CALL    bdos_conout
+        LD      A,(pd_active)
+        OR      A
+        LD      A,' '
+        JR      Z,.pdh_close
+        LD      A,']'
+.pdh_close:
+        CALL    bdos_conout
+        LD      B,PANEL_WIDTH-4
+.pdh_pad:
+        LD      A,' '
+        CALL    bdos_conout
+        DJNZ    .pdh_pad
+        POP     BC
+        POP     AF
+        RET
+
+;------------------------------------------------------------------------------
+; panel_draw_index — one list row. HL=index, C=col, A≠0 reverse the name.
+; Same paint as a full-panel row: clear, then name, SGR only around the name.
+;------------------------------------------------------------------------------
+panel_draw_index:
+        PUSH    AF
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      (pd_hi),A
+        LD      A,C
+        LD      (pd_col),A
+        LD      (pd_idx),HL
+
+        LD      E,(IX+P_SCROLL)
+        LD      D,(IX+P_SCROLL+1)
+        OR      A
+        SBC     HL,DE
+        JR      C,.pdi_done
+        LD      A,L
+        CP      PANEL_ROWS
+        JR      NC,.pdi_done
+        ADD     A,2
+        LD      (pd_row),A
+        CALL    panel_paint_row
+.pdi_done:
+        POP     HL
+        POP     DE
+        POP     BC
+        POP     AF
+        RET
+
+;------------------------------------------------------------------------------
+; panel_paint_row — (pd_row)(pd_col)(pd_idx)(pd_hi) already set
+;------------------------------------------------------------------------------
+panel_paint_row:
+        PUSH    AF
+        PUSH    BC
+        PUSH    HL
+        CALL    term_rev_off
+        LD      A,(pd_row)
+        LD      B,A
+        LD      A,(pd_col)
+        LD      C,A
+        CALL    term_cup
+        LD      B,PANEL_WIDTH
+.ppr_clr:
+        LD      A,' '
+        CALL    bdos_conout
+        DJNZ    .ppr_clr
+
+        LD      HL,(pd_idx)
+        LD      E,(IX+P_COUNT)
+        LD      D,(IX+P_COUNT+1)
+        OR      A
+        SBC     HL,DE
+        JR      NC,.ppr_done
+
+        LD      A,(pd_row)
+        LD      B,A
+        LD      A,(pd_col)
+        LD      C,A
+        CALL    term_cup
+        LD      A,(pd_hi)
+        OR      A
+        CALL    NZ,term_rev_on
+        CALL    panel_name_at_idx
+        LD      DE,pd_nbuf
+        CALL    panel_fmt_name
+        LD      HL,pd_nbuf
+        CALL    term_puts
+        CALL    term_rev_off
+.ppr_done:
+        POP     HL
         POP     BC
         POP     AF
         RET
