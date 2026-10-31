@@ -96,8 +96,8 @@ panel_draw:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_put_line — HL → zstring, A≠0 cursor line ("＞name"); pad to PANEL_WIDTH
-; No SGR reverse: this terminal's reverse attribute sticks/leaks.
+; panel_put_line — HL → zstring, A≠0 cursor: "* NAME"; else "  NAME"
+; Markers only (no SGR): reverse/DECTCEM break this serial ANSI stack.
 ;------------------------------------------------------------------------------
 panel_put_line:
         PUSH    AF
@@ -106,10 +106,19 @@ panel_put_line:
         PUSH    HL
         LD      B,PANEL_WIDTH
         OR      A
+        JR      Z,.ppl_norm
+        LD      A,'*'
+        CALL    bdos_conout
+        DEC     B
         LD      A,' '
-        JR      Z,.ppl_mark
-        LD      A,'>'
-.ppl_mark:
+        CALL    bdos_conout
+        DEC     B
+        JR      .ppl_ch
+.ppl_norm:
+        LD      A,' '
+        CALL    bdos_conout
+        DEC     B
+        LD      A,' '
         CALL    bdos_conout
         DEC     B
 .ppl_ch:
@@ -231,12 +240,12 @@ panel_draw_header:
         LD      (pd_col),A
         LD      B,1
         CALL    term_cup
-        ; active: "[A:]"  inactive: " A: "
+        ; active: "*A:*"  inactive: " A: "
         LD      A,(pd_active)
         OR      A
         LD      A,' '
         JR      Z,.pdh_l
-        LD      A,'['
+        LD      A,'*'
 .pdh_l: CALL    bdos_conout
         LD      A,(IX+P_DRIVE)
         ADD     A,'A'
@@ -247,9 +256,8 @@ panel_draw_header:
         OR      A
         LD      A,' '
         JR      Z,.pdh_r
-        LD      A,']'
+        LD      A,'*'
 .pdh_r: CALL    bdos_conout
-        ; pad a few spaces so dirty redraw clears old brackets
         LD      A,' '
         CALL    bdos_conout
         CALL    bdos_conout

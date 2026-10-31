@@ -128,8 +128,6 @@ drive_menu_draw:
         PUSH    BC
         PUSH    DE
         PUSH    HL
-        CALL    term_cursor_off
-
         LD      B,DRV_MENU_ROW
         LD      C,DRV_MENU_COL
         CALL    term_cup
@@ -162,7 +160,7 @@ drive_menu_draw:
         CP      C
         LD      A,' '
         JR      NZ,.dmd_mark
-        LD      A,'>'
+        LD      A,'*'
 .dmd_mark:
         CALL    bdos_conout
         POP     HL
@@ -174,7 +172,7 @@ drive_menu_draw:
         CALL    bdos_conout
         LD      A,' '
         CALL    bdos_conout
-        CALL    bdos_conout             ; pad over any old reverse cells
+        CALL    bdos_conout
 
         POP     HL
         POP     BC
@@ -191,7 +189,6 @@ drive_menu_draw:
         LD      DE,msg_drv_hint
         CALL    bdos_print
 
-        CALL    term_cursor_on
         POP     HL
         POP     DE
         POP     BC

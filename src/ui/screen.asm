@@ -21,7 +21,6 @@ screen_draw_all:
         PUSH    HL
         PUSH    IX
 
-        CALL    term_cursor_off
         CALL    term_cls
 
         LD      IX,panel_left
@@ -57,7 +56,6 @@ screen_draw_all:
 
         CALL    status_clear
         CALL    status_draw_fkeys
-        CALL    term_cursor_on
 
         POP     IX
         POP     HL
@@ -75,7 +73,6 @@ screen_tab_switch:
         PUSH    DE
         PUSH    HL
         PUSH    IX
-        CALL    term_cursor_off
 
         ; headers
         LD      IX,panel_left
@@ -120,7 +117,6 @@ screen_tab_switch:
         LD      A,1
 .st_rc: CALL    panel_draw_index
 
-        CALL    term_cursor_on
         POP     IX
         POP     HL
         POP     DE
@@ -146,7 +142,6 @@ screen_nav_update:
         CP      B
         JR      NZ,.sn_full
 
-        CALL    term_cursor_off
         CALL    screen_active_col
         LD      A,C
         LD      (sn_col),A
@@ -163,15 +158,12 @@ screen_nav_update:
         LD      C,A
         LD      A,1
         CALL    panel_draw_index
-        CALL    term_cursor_on
         JR      .sn_done
 
 .sn_full:
-        CALL    term_cursor_off
         CALL    screen_active_col
         LD      A,1
         CALL    panel_draw
-        CALL    term_cursor_on
 
 .sn_done:
         POP     HL
