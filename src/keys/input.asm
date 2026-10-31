@@ -4,8 +4,9 @@
 ; Public entry points:
 ;   keys_get      block until a key → A = logical code (keys.inc)
 ;
-; After ESC, uses an extended poll budget so CSI '[' is not dropped (hardware
-; sometimes returned 1B 44 instead of 1B 5B 44 on the first Left after idle).
+; After ESC, wait only long enough for the rest of a serial sequence.
+; A human second keypress must not arrive in that window: otherwise Esc
+; exits only as Esc+key, which is what the viewer and editor were doing.
 ;
 ; Depends on: bdos_conin_nb, keymap_lookup_csi / keymap_lookup_ss3 /
 ;             keymap_lookup_vt52
@@ -30,8 +31,9 @@ keys_get:
 
 ; --- ESC sequence ------------------------------------------------------------
 .kg_esc:
-        ; Longer wait for the byte after ESC
-        CALL    keys_poll_long
+        ; Short wait: CSI/SS3 bytes are already on the wire. A lone Esc
+        ; must return before the user can press another key.
+        CALL    keys_poll_esc
         OR      A
         JR      NZ,.kg_esc2
         LD      A,KEY_ESC               ; lone ESC
@@ -98,10 +100,16 @@ keys_get:
         RET
 
 ;------------------------------------------------------------------------------
-; keys_poll_long — wait for next raw byte with extended budget → A or 0
+; keys_poll_esc  — brief wait for the byte that distinguishes Esc from CSI
+; keys_poll_long — rest of a sequence already in progress
+; Both return A = byte, or 0 on timeout.
 ;------------------------------------------------------------------------------
+keys_poll_esc:
+        LD      DE,800
+        JR      keys_poll
 keys_poll_long:
         LD      DE,12000
+keys_poll:
 .kpl:
         PUSH    DE
         CALL    bdos_conin_nb
