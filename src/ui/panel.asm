@@ -8,6 +8,9 @@
 ;   panel_cursor_up   IX → panel
 ;   panel_cursor_down IX → panel
 ;   panel_fmt_name    HL → 11-char FCB name, DE → dest buffer (13 bytes max)
+;
+; Cursor = reverse-video bar (as in early MCX0.2d). Drive menu must NOT use
+; SGR reverse — that leaked and stuck on this serial console.
 ;==============================================================================
 
         INCLUDE "include/cpm.inc"
@@ -25,9 +28,8 @@ panel_draw:
         LD      A,C
         LD      (pd_col),A
         LD      A,(pd_active)
-        CALL    panel_draw_header       ; A=active, C=col
+        CALL    panel_draw_header
 
-        ; list rows 2 .. 2+PANEL_ROWS-1
         LD      L,(IX+P_SCROLL)
         LD      H,(IX+P_SCROLL+1)
         LD      (pd_idx),HL
@@ -43,7 +45,8 @@ panel_draw:
         LD      C,A
         CALL    term_cup
 
-        ; blank if past end of list
+        XOR     A
+        LD      (pd_hi),A
         LD      HL,(pd_idx)
         LD      E,(IX+P_COUNT)
         LD      D,(IX+P_COUNT+1)
@@ -51,8 +54,6 @@ panel_draw:
         SBC     HL,DE
         JR      NC,.pd_blank
 
-        XOR     A
-        LD      (pd_hi),A
         LD      HL,(pd_idx)
         LD      E,(IX+P_CURSOR)
         LD      D,(IX+P_CURSOR+1)
@@ -96,31 +97,17 @@ panel_draw:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_put_line — HL → zstring, A≠0 cursor: "* NAME"; else "  NAME"
-; Markers only (no SGR): reverse/DECTCEM break this serial ANSI stack.
+; panel_put_line — HL → zstring, A≠0 = reverse bar across PANEL_WIDTH
 ;------------------------------------------------------------------------------
 panel_put_line:
         PUSH    AF
         PUSH    BC
         PUSH    DE
         PUSH    HL
-        LD      B,PANEL_WIDTH
+        CALL    term_rev_off            ; start clean
         OR      A
-        JR      Z,.ppl_norm
-        LD      A,'*'
-        CALL    bdos_conout
-        DEC     B
-        LD      A,' '
-        CALL    bdos_conout
-        DEC     B
-        JR      .ppl_ch
-.ppl_norm:
-        LD      A,' '
-        CALL    bdos_conout
-        DEC     B
-        LD      A,' '
-        CALL    bdos_conout
-        DEC     B
+        CALL    NZ,term_rev_on
+        LD      B,PANEL_WIDTH
 .ppl_ch:
         LD      A,B
         OR      A
@@ -141,6 +128,7 @@ panel_put_line:
         CALL    bdos_conout
         DJNZ    .ppl_sp
 .ppl_done:
+        CALL    term_rev_off            ; always clear reverse after the row
         POP     HL
         POP     DE
         POP     BC
@@ -152,7 +140,6 @@ panel_put_line:
 ;------------------------------------------------------------------------------
 panel_name_at_idx:
         LD      HL,(pd_idx)
-        ; *12
         ADD     HL,HL
         ADD     HL,HL
         LD      E,L
@@ -172,7 +159,6 @@ panel_name_at_idx:
 panel_fmt_name:
         PUSH    BC
         PUSH    HL
-        ; copy name chars until space or 8
         LD      B,8
 .fn_n:
         LD      A,(HL)
@@ -184,7 +170,6 @@ panel_fmt_name:
         DJNZ    .fn_n
         JR      .fn_type
 .fn_n_pad:
-        ; skip rest of name field
         LD      A,B
 .fn_ns:
         OR      A
@@ -193,7 +178,6 @@ panel_fmt_name:
         DEC     A
         JR      .fn_ns
 .fn_type:
-        ; HL at type; if all spaces → no dot
         PUSH    HL
         LD      A,(HL)
         CP      ' '
@@ -230,7 +214,7 @@ panel_fmt_name:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_draw_header — IX=panel, C=col, A≠0 if active
+; panel_draw_header — IX=panel, C=col, A≠0 if active (reverse)
 ;------------------------------------------------------------------------------
 panel_draw_header:
         PUSH    AF
@@ -238,36 +222,32 @@ panel_draw_header:
         LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
+        CALL    term_rev_off
         LD      B,1
         CALL    term_cup
-        ; active: "*A:*"  inactive: " A: "
         LD      A,(pd_active)
         OR      A
+        CALL    NZ,term_rev_on
         LD      A,' '
-        JR      Z,.pdh_l
-        LD      A,'*'
-.pdh_l: CALL    bdos_conout
+        CALL    bdos_conout
         LD      A,(IX+P_DRIVE)
         ADD     A,'A'
         CALL    bdos_conout
         LD      A,':'
         CALL    bdos_conout
-        LD      A,(pd_active)
-        OR      A
         LD      A,' '
-        JR      Z,.pdh_r
-        LD      A,'*'
-.pdh_r: CALL    bdos_conout
+        CALL    bdos_conout
+        ; pad so dirty redraw clears old text
         LD      A,' '
         CALL    bdos_conout
         CALL    bdos_conout
+        CALL    term_rev_off
         POP     BC
         POP     AF
         RET
 
 ;------------------------------------------------------------------------------
-; panel_draw_index — IX=panel, C=col, HL=index, A≠0 highlight
-; Draws the screen row for that index if it is inside the scroll window.
+; panel_draw_index — IX=panel, C=col, HL=file index, A≠0 highlight
 ;------------------------------------------------------------------------------
 panel_draw_index:
         PUSH    AF
@@ -279,15 +259,14 @@ panel_draw_index:
         LD      (pd_col),A
         LD      (pd_idx),HL
 
-        ; row = 2 + (index - scroll); skip if out of window
         LD      E,(IX+P_SCROLL)
         LD      D,(IX+P_SCROLL+1)
         OR      A
         SBC     HL,DE
-        JR      C,.pdi_done              ; above window
+        JR      C,.pdi_done
         LD      A,L
         CP      PANEL_ROWS
-        JR      NC,.pdi_done             ; below window
+        JR      NC,.pdi_done
         ADD     A,2
         LD      (pd_row),A
 
@@ -296,7 +275,6 @@ panel_draw_index:
         LD      C,A
         CALL    term_cup
 
-        ; beyond count? → blank
         LD      HL,(pd_idx)
         LD      E,(IX+P_COUNT)
         LD      D,(IX+P_COUNT+1)
@@ -325,7 +303,7 @@ panel_draw_index:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_cursor_up / panel_cursor_down — adjust cursor and scroll window
+; panel_cursor_up / panel_cursor_down
 ;------------------------------------------------------------------------------
 panel_cursor_up:
         LD      L,(IX+P_CURSOR)
@@ -336,7 +314,6 @@ panel_cursor_up:
         DEC     HL
         LD      (IX+P_CURSOR),L
         LD      (IX+P_CURSOR+1),H
-        ; if cursor < scroll → scroll = cursor
         LD      E,(IX+P_SCROLL)
         LD      D,(IX+P_SCROLL+1)
         OR      A
@@ -357,7 +334,6 @@ panel_cursor_down:
         LD      A,D
         OR      E
         RET     Z
-        ; if cursor+1 >= count → stop
         PUSH    HL
         OR      A
         SBC     HL,DE
@@ -365,7 +341,6 @@ panel_cursor_down:
         RET     NC
         LD      (IX+P_CURSOR),L
         LD      (IX+P_CURSOR+1),H
-        ; if cursor >= scroll+PANEL_ROWS → scroll++
         LD      E,(IX+P_SCROLL)
         LD      D,(IX+P_SCROLL+1)
         PUSH    HL
@@ -383,7 +358,6 @@ panel_cursor_down:
         LD      (IX+P_SCROLL+1),H
         RET
 
-; locals
 pd_active:      DB      0
 pd_col:         DB      0
 pd_row:         DB      0
