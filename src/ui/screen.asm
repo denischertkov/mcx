@@ -22,7 +22,6 @@ screen_draw_all:
         PUSH    IX
 
         CALL    term_cursor_off
-        CALL    term_rev_off            ; SGR survives CLS on VT100
         CALL    term_cls
 
         LD      IX,panel_left

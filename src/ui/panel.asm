@@ -24,28 +24,8 @@ panel_draw:
         LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
-        CALL    term_rev_off            ; never paint while reverse is stuck on
-
-        ; header row 1: " A: " or reverse if active
-        LD      B,1
-        LD      A,(pd_col)
-        LD      C,A
-        CALL    term_cup
-
         LD      A,(pd_active)
-        OR      A
-        CALL    NZ,term_rev_on
-
-        LD      A,' '
-        CALL    bdos_conout
-        LD      A,(IX+P_DRIVE)
-        ADD     A,'A'
-        CALL    bdos_conout
-        LD      A,':'
-        CALL    bdos_conout
-        LD      A,' '
-        CALL    bdos_conout
-        CALL    term_rev_off            ; always reset after header
+        CALL    panel_draw_header       ; A=active, C=col
 
         ; list rows 2 .. 2+PANEL_ROWS-1
         LD      L,(IX+P_SCROLL)
@@ -116,29 +96,33 @@ panel_draw:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_put_line — HL → zstring, A≠0 highlight; pad to PANEL_WIDTH, SGR reset
+; panel_put_line — HL → zstring, A≠0 cursor line ("＞name"); pad to PANEL_WIDTH
+; No SGR reverse: this terminal's reverse attribute sticks/leaks.
 ;------------------------------------------------------------------------------
 panel_put_line:
         PUSH    AF
         PUSH    BC
         PUSH    DE
         PUSH    HL
-        OR      A
-        JR      Z,.ppl_norm
-        CALL    term_rev_on
-        JR      .ppl_go
-.ppl_norm:
-        CALL    term_rev_off
-.ppl_go:
         LD      B,PANEL_WIDTH
+        OR      A
+        LD      A,' '
+        JR      Z,.ppl_mark
+        LD      A,'>'
+.ppl_mark:
+        CALL    bdos_conout
+        DEC     B
 .ppl_ch:
+        LD      A,B
+        OR      A
+        JR      Z,.ppl_done
         LD      A,(HL)
         OR      A
         JR      Z,.ppl_pad
         CALL    bdos_conout
         INC     HL
-        DJNZ    .ppl_ch
-        JR      .ppl_done
+        DEC     B
+        JR      .ppl_ch
 .ppl_pad:
         LD      A,B
         OR      A
@@ -148,7 +132,6 @@ panel_put_line:
         CALL    bdos_conout
         DJNZ    .ppl_sp
 .ppl_done:
-        CALL    term_rev_off
         POP     HL
         POP     DE
         POP     BC
@@ -246,22 +229,30 @@ panel_draw_header:
         LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
-        CALL    term_rev_off
         LD      B,1
         CALL    term_cup
+        ; active: "[A:]"  inactive: " A: "
         LD      A,(pd_active)
         OR      A
-        CALL    NZ,term_rev_on
         LD      A,' '
-        CALL    bdos_conout
+        JR      Z,.pdh_l
+        LD      A,'['
+.pdh_l: CALL    bdos_conout
         LD      A,(IX+P_DRIVE)
         ADD     A,'A'
         CALL    bdos_conout
         LD      A,':'
         CALL    bdos_conout
+        LD      A,(pd_active)
+        OR      A
+        LD      A,' '
+        JR      Z,.pdh_r
+        LD      A,']'
+.pdh_r: CALL    bdos_conout
+        ; pad a few spaces so dirty redraw clears old brackets
         LD      A,' '
         CALL    bdos_conout
-        CALL    term_rev_off
+        CALL    bdos_conout
         POP     BC
         POP     AF
         RET

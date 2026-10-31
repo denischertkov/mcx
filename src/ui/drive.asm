@@ -84,9 +84,6 @@ drive_pick:
 .dp_cancel:
         LD      A,0FFh
 .dp_ret:
-        PUSH    AF
-        CALL    term_rev_off            ; CLS does not clear SGR — drop reverse
-        POP     AF
         POP     HL
         POP     DE
         POP     BC
@@ -136,10 +133,8 @@ drive_menu_draw:
         LD      B,DRV_MENU_ROW
         LD      C,DRV_MENU_COL
         CALL    term_cup
-        CALL    term_rev_on
         LD      DE,msg_drv_title
         CALL    bdos_print
-        CALL    term_rev_off
 
         LD      A,(drv_count)
         LD      B,A
@@ -165,14 +160,10 @@ drive_menu_draw:
         LD      C,A
         LD      A,(drv_sel)
         CP      C
-        LD      A,0
-        JR      NZ,.dmd_nr
-        LD      A,1
-.dmd_nr:LD      (drv_hi),A
-        OR      A
-        CALL    NZ,term_rev_on
-
         LD      A,' '
+        JR      NZ,.dmd_mark
+        LD      A,'>'
+.dmd_mark:
         CALL    bdos_conout
         POP     HL
         PUSH    HL
@@ -183,10 +174,7 @@ drive_menu_draw:
         CALL    bdos_conout
         LD      A,' '
         CALL    bdos_conout
-
-        LD      A,(drv_hi)
-        OR      A
-        CALL    NZ,term_rev_off
+        CALL    bdos_conout             ; pad over any old reverse cells
 
         POP     HL
         POP     BC
@@ -302,6 +290,5 @@ msg_drv_hint:   DB      " Enter/Esc $"
 
 drv_count:      DB      0
 drv_sel:        DB      0
-drv_hi:         DB      0
 drv_list:       DS      16
 drv_bios_sel:   DW      0
