@@ -24,11 +24,13 @@ screen_draw_all:
         PUSH    IX
 
         CALL    term_rev_off
+        CALL    term_gfx_off
         CALL    term_cls
+        CALL    screen_draw_frame
 
         ; left panel
         LD      IX,panel_left
-        LD      C,1
+        LD      C,PANEL_LEFT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -37,23 +39,9 @@ screen_draw_all:
 .sd_left_inact:
         CALL    panel_draw
 
-        ; vertical separator
-        LD      B,1
-.sd_sep:
-        PUSH    BC
-        LD      C,40
-        CALL    term_cup
-        LD      A,'|'
-        CALL    bdos_conout
-        POP     BC
-        INC     B
-        LD      A,B
-        CP      23
-        JR      C,.sd_sep
-
         ; right panel
         LD      IX,panel_right
-        LD      C,41
+        LD      C,PANEL_RIGHT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -84,7 +72,7 @@ screen_tab_switch:
         CALL    term_rev_off
 
         LD      IX,panel_left
-        LD      C,1
+        LD      C,PANEL_LEFT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -93,7 +81,7 @@ screen_tab_switch:
 .st_lh: CALL    panel_draw_header
 
         LD      IX,panel_right
-        LD      C,41
+        LD      C,PANEL_RIGHT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -104,7 +92,7 @@ screen_tab_switch:
         LD      IX,panel_left
         LD      L,(IX+P_CURSOR)
         LD      H,(IX+P_CURSOR+1)
-        LD      C,1
+        LD      C,PANEL_LEFT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -115,7 +103,7 @@ screen_tab_switch:
         LD      IX,panel_right
         LD      L,(IX+P_CURSOR)
         LD      H,(IX+P_CURSOR+1)
-        LD      C,41
+        LD      C,PANEL_RIGHT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -182,9 +170,83 @@ screen_nav_update:
 screen_active_col:
         LD      A,(active_panel)
         OR      A
-        LD      C,1
+        LD      C,PANEL_LEFT_COL
         RET     Z
-        LD      C,41
+        LD      C,PANEL_RIGHT_COL
+        RET
+
+;------------------------------------------------------------------------------
+; screen_draw_frame — box around both panels. Row 1 top, row 22 bottom,
+; bars in columns 1, 40 and 80. Leaves G0 in US-ASCII.
+; DEC graphics: l q k / m j / x / w v
+;------------------------------------------------------------------------------
+screen_draw_frame:
+        CALL    term_gfx_on
+        LD      B,1
+        CALL    frame_horiz
+        LD      B,FRAME_BOTTOM
+        CALL    frame_horiz
+        LD      B,2
+.sf_vert:
+        PUSH    BC
+        LD      C,1
+        CALL    frame_bar
+        LD      C,PANEL_GAP_COL
+        CALL    frame_bar
+        LD      C,SCR_COLS
+        CALL    frame_bar
+        POP     BC
+        INC     B
+        LD      A,B
+        CP      FRAME_BOTTOM
+        JR      C,.sf_vert
+        CALL    term_gfx_off
+        RET
+
+; B = row, graphics charset already on. Top uses l/w/k, bottom m/v/j.
+frame_horiz:
+        PUSH    BC
+        LD      C,1
+        CALL    term_cup
+        LD      A,B
+        CP      1
+        LD      A,'l'
+        JR      Z,.fh_l
+        LD      A,'m'
+.fh_l:  CALL    bdos_conout
+        LD      B,PANEL_WIDTH
+        CALL    frame_q
+        POP     BC
+        PUSH    BC
+        LD      A,B
+        CP      1
+        LD      A,'w'
+        JR      Z,.fh_m
+        LD      A,'v'
+.fh_m:  CALL    bdos_conout
+        LD      B,PANEL_WIDTH_R
+        CALL    frame_q
+        POP     BC
+        LD      A,B
+        CP      1
+        LD      A,'k'
+        JR      Z,.fh_r
+        LD      A,'j'
+.fh_r:  CALL    bdos_conout
+        RET
+
+; B = row, C = column. Graphics charset on.
+frame_bar:
+        CALL    term_cup
+        LD      A,'x'
+        CALL    bdos_conout
+        RET
+
+; B = count of horizontal line chars. BDOS clobbers A.
+frame_q:
+.fq:    LD      A,'q'
+        CALL    bdos_conout
+        DJNZ    .fq
         RET
 
 sn_col:         DB      0

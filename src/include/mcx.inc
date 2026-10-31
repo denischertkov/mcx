@@ -8,9 +8,13 @@
 SCR_COLS        EQU     80
 SCR_ROWS        EQU     24
 
-PANEL_ROWS      EQU     21              ; file list rows (screen rows 2..22)
-PANEL_WIDTH     EQU     39              ; chars per panel column
-PANEL_GAP_COL   EQU     40              ; right panel starts at column 41 (1-based: 41)
+PANEL_ROWS      EQU     20              ; file list rows (screen rows 2..21)
+PANEL_WIDTH     EQU     38              ; left list, columns 2..39
+PANEL_WIDTH_R   EQU     39              ; right list, columns 41..79
+PANEL_LEFT_COL  EQU     2
+PANEL_RIGHT_COL EQU     41
+PANEL_GAP_COL   EQU     40              ; vertical bar between panels
+FRAME_BOTTOM    EQU     22              ; bottom edge; status stays on 23
 
 MAX_FILES       EQU     128             ; per panel
 NAME_LEN        EQU     11              ; 8 + 3, FCB-style, no dot

@@ -26,6 +26,7 @@ help_text:
         DB      CR,LF
         DB      "Keys:",CR,LF
         DB      "  Arrows     move cursor in active panel",CR,LF
+        DB      "  Home/End   first / last file in the panel",CR,LF
         DB      "  Tab        switch active panel",CR,LF
         DB      "  Enter      run .COM (iter 3)",CR,LF
         DB      "  F1         this help",CR,LF

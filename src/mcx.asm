@@ -50,6 +50,10 @@ main_loop:
         JP      Z,do_up
         CP      KEY_DOWN
         JP      Z,do_down
+        CP      KEY_HOME
+        JP      Z,do_home
+        CP      KEY_END
+        JP      Z,do_end
         CP      KEY_CTRL_L
         JP      Z,do_drv_left
         CP      KEY_CTRL_R
@@ -164,6 +168,34 @@ do_down:
         PUSH    DE
         PUSH    BC
         CALL    panel_cursor_down
+        POP     BC
+        POP     DE
+        CALL    screen_nav_update
+        JP      main_loop
+
+do_home:
+        CALL    active_ix
+        LD      E,(IX+P_CURSOR)
+        LD      D,(IX+P_CURSOR+1)
+        LD      C,(IX+P_SCROLL)
+        LD      B,(IX+P_SCROLL+1)
+        PUSH    DE
+        PUSH    BC
+        CALL    panel_cursor_home
+        POP     BC
+        POP     DE
+        CALL    screen_nav_update
+        JP      main_loop
+
+do_end:
+        CALL    active_ix
+        LD      E,(IX+P_CURSOR)
+        LD      D,(IX+P_CURSOR+1)
+        LD      C,(IX+P_SCROLL)
+        LD      B,(IX+P_SCROLL+1)
+        PUSH    DE
+        PUSH    BC
+        CALL    panel_cursor_end
         POP     BC
         POP     DE
         CALL    screen_nav_update

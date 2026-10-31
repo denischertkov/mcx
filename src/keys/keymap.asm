@@ -56,8 +56,18 @@ keymap_lookup_ss3:
         RET
 .ss3_s:
         CP      'S'
-        JR      NZ,.ss3_none
+        JR      NZ,.ss3_h
         LD      A,KEY_F4
+        RET
+.ss3_h:
+        CP      'H'
+        JR      NZ,.ss3_f
+        LD      A,KEY_HOME
+        RET
+.ss3_f:
+        CP      'F'
+        JR      NZ,.ss3_none
+        LD      A,KEY_END
         RET
 .ss3_none:
         LD      A,KEY_NONE
@@ -70,7 +80,7 @@ keymap_lookup_ss3:
 keymap_lookup_csi:
         LD      A,B
         OR      A
-        JR      Z,.csi_none
+        JP      Z,.csi_none
         CP      1
         JR      NZ,.csi_num
         ; single final byte
@@ -88,8 +98,16 @@ keymap_lookup_csi:
         LD      A,KEY_RIGHT
         RET
 .c1d:   CP      'D'
-        JR      NZ,.csi_none
+        JR      NZ,.c1h
         LD      A,KEY_LEFT
+        RET
+.c1h:   CP      'H'
+        JR      NZ,.c1f
+        LD      A,KEY_HOME
+        RET
+.c1f:   CP      'F'
+        JR      NZ,.csi_none
+        LD      A,KEY_END
         RET
 
 .csi_num:
@@ -113,8 +131,24 @@ keymap_lookup_csi:
         LD      A,KEY_PGUP
         RET
 .cn6:   CP      6                        ; PgDn  ESC [ 6 ~
-        JR      NZ,.cn15
+        JR      NZ,.cn1
         LD      A,KEY_PGDN
+        RET
+.cn1:   CP      1                        ; Home  ESC [ 1 ~
+        JR      NZ,.cn4
+        LD      A,KEY_HOME
+        RET
+.cn4:   CP      4                        ; End   ESC [ 4 ~
+        JR      NZ,.cn7
+        LD      A,KEY_END
+        RET
+.cn7:   CP      7                        ; Home  ESC [ 7 ~
+        JR      NZ,.cn8
+        LD      A,KEY_HOME
+        RET
+.cn8:   CP      8                        ; End   ESC [ 8 ~
+        JR      NZ,.cn15
+        LD      A,KEY_END
         RET
 .cn15:  CP      15                       ; common VT220 F5
         JR      NZ,.cn16

@@ -3,7 +3,7 @@
 ;
 ; Public entry points:
 ;   panel_draw        IX → panel, C = left col (1-based), A≠0 if active
-;   panel_draw_header IX, C=col, A≠0 active — "[A:]" or " A: ", no SGR
+;   panel_draw_header IX, C=col, A≠0 active — "[A:]" or " A: " on the top edge
 ;   panel_draw_index  IX, C=col, HL=file index, A≠0 reverse — one list row
 ;   panel_cursor_up   IX → panel
 ;   panel_cursor_down IX → panel
@@ -24,6 +24,7 @@ panel_draw:
         LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
+        CALL    panel_use_width
         LD      A,(pd_active)
         CALL    panel_draw_header
 
@@ -85,6 +86,7 @@ panel_draw_header:
         LD      A,C
         LD      (pd_col),A
         CALL    term_rev_off
+        CALL    term_gfx_off
         LD      B,1
         LD      A,(pd_col)
         LD      C,A
@@ -108,11 +110,6 @@ panel_draw_header:
         LD      A,']'
 .pdh_close:
         CALL    bdos_conout
-        LD      B,PANEL_WIDTH-4
-.pdh_pad:
-        LD      A,' '
-        CALL    bdos_conout
-        DJNZ    .pdh_pad
         POP     BC
         POP     AF
         RET
@@ -129,6 +126,7 @@ panel_draw_index:
         LD      (pd_hi),A
         LD      A,C
         LD      (pd_col),A
+        CALL    panel_use_width
         LD      (pd_idx),HL
 
         LD      E,(IX+P_SCROLL)
@@ -162,7 +160,8 @@ panel_paint_row:
         LD      A,(pd_col)
         LD      C,A
         CALL    term_cup
-        LD      B,PANEL_WIDTH
+        LD      A,(pd_width)
+        LD      B,A
 .ppr_clr:
         LD      A,' '
         CALL    bdos_conout
@@ -336,9 +335,59 @@ panel_cursor_down:
         LD      (IX+P_SCROLL+1),H
         RET
 
+;------------------------------------------------------------------------------
+; panel_cursor_home / panel_cursor_end — first and last file
+;------------------------------------------------------------------------------
+panel_cursor_home:
+        XOR     A
+        LD      (IX+P_CURSOR),A
+        LD      (IX+P_CURSOR+1),A
+        LD      (IX+P_SCROLL),A
+        LD      (IX+P_SCROLL+1),A
+        RET
+
+panel_cursor_end:
+        LD      L,(IX+P_COUNT)
+        LD      H,(IX+P_COUNT+1)
+        LD      A,H
+        OR      L
+        RET     Z
+        DEC     HL
+        LD      (IX+P_CURSOR),L
+        LD      (IX+P_CURSOR+1),H
+        LD      E,(IX+P_COUNT)
+        LD      D,(IX+P_COUNT+1)
+        LD      HL,PANEL_ROWS
+        OR      A
+        SBC     HL,DE
+        JR      NC,.ce_top
+        LD      L,(IX+P_COUNT)
+        LD      H,(IX+P_COUNT+1)
+        LD      DE,PANEL_ROWS
+        OR      A
+        SBC     HL,DE
+        JR      .ce_set
+.ce_top:
+        LD      HL,0
+.ce_set:
+        LD      (IX+P_SCROLL),L
+        LD      (IX+P_SCROLL+1),H
+        RET
+
+; pd_col → pd_width (left 38, right 39)
+panel_use_width:
+        LD      A,(pd_col)
+        CP      PANEL_RIGHT_COL
+        LD      A,PANEL_WIDTH
+        JR      C,.puw
+        LD      A,PANEL_WIDTH_R
+.puw:   LD      (pd_width),A
+        RET
+
 ; locals
 pd_active:      DB      0
 pd_col:         DB      0
+pd_width:       DB      PANEL_WIDTH
 pd_row:         DB      0
 pd_hi:          DB      0
 pd_idx:         DW      0
