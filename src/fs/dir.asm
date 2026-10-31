@@ -35,6 +35,11 @@ dir_load:
 
         CALL    dir_init_fcb
 
+        ; Select the panel drive via BDOS as well as FCB_DR — needed after
+        ; BIOS SELDSK probing in the drive picker, which can desync BDOS.
+        LD      A,(IX+P_DRIVE)
+        CALL    bdos_set_drv
+
         LD      DE,dir_dma
         LD      C,F_DMAOFF
         CALL    BDOS

@@ -219,6 +219,9 @@ drive_probe:
         XOR     A
         LD      (drv_count),A
 
+        CALL    bdos_get_drv
+        LD      (drv_saved),A
+
         LD      HL,(0001h)
         LD      DE,24
         ADD     HL,DE
@@ -251,6 +254,10 @@ drive_probe:
         LD      A,(drv_count)
         OR      A
         CALL    Z,drive_probe_login
+
+        ; Restore BDOS current drive — SELDSK probe leaves it on the last disk.
+        LD      A,(drv_saved)
+        CALL    bdos_set_drv
 
         POP     HL
         POP     DE
@@ -301,5 +308,6 @@ msg_drv_hint:   DB      " Enter/Esc $"
 
 drv_count:      DB      0
 drv_sel:        DB      0
+drv_saved:      DB      0
 drv_list:       DS      16
 drv_bios_sel:   DW      0

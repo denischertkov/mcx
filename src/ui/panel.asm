@@ -93,11 +93,12 @@ panel_draw:
 ; panel_put_line — HL→name, A≠0 reverse bar; always ends with SGR0
 ;------------------------------------------------------------------------------
 panel_put_line:
-        PUSH    AF
         PUSH    BC
         PUSH    DE
         PUSH    HL
+        LD      (pd_hi),A               ; keep flag out of AF across calls
         CALL    term_rev_off
+        LD      A,(pd_hi)
         OR      A
         CALL    NZ,term_rev_on
         LD      B,PANEL_WIDTH
@@ -125,7 +126,6 @@ panel_put_line:
         POP     HL
         POP     DE
         POP     BC
-        POP     AF
         RET
 
 ;------------------------------------------------------------------------------
