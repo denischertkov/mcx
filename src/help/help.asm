@@ -34,6 +34,7 @@ help_text:
         DB      "  F4         edit file (F2 save, Esc exit)",CR,LF
         DB      "  F5         copy to the other panel's drive",CR,LF
         DB      "  F6         rename in this panel",CR,LF
+        DB      "  F8         delete file (Y to confirm)",CR,LF
         DB      "  F10        quit to CP/M",CR,LF
         DB      "  Ctrl-L     LEFT panel: drive menu",CR,LF
         DB      "  Ctrl-R     RIGHT panel: drive menu",CR,LF

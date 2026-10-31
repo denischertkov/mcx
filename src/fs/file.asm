@@ -1,9 +1,10 @@
 ;==============================================================================
-; fs/file.asm — copy and rename the file under the cursor
+; fs/file.asm — copy, rename, and delete the file under the cursor
 ;
 ;   file_copy     F5. Same name onto the other panel's drive.
 ;                 Same drive is refused (that would be a rename — use F6).
 ;   file_rename   F6. New name on the active panel's drive.
+;   file_delete   F8. Asks first. Only Y removes the file.
 ;
 ; On return (file_msg) is a $-string for the status line. (file_dirty) ≠ 0
 ; means a panel was reloaded and the caller should redraw the screen.
@@ -156,6 +157,71 @@ file_rename:
 .fr_fail:
         LD      DE,msg_renamefail
 .fr_ret:
+        LD      (file_msg),DE
+        RET
+
+;------------------------------------------------------------------------------
+; file_delete — F8. Only the letter Y confirms.
+;------------------------------------------------------------------------------
+file_delete:
+        XOR     A
+        LD      (file_dirty),A
+        CALL    file_take_current
+        JP      C,.fk_nofile
+
+        LD      HL,file_src_name
+        LD      DE,file_disp
+        CALL    panel_fmt_name
+        LD      DE,msg_delete
+        CALL    status_msg
+        LD      HL,file_disp
+        CALL    term_puts
+        LD      DE,msg_yn
+        CALL    bdos_print
+        CALL    keys_get
+        CALL    upcase
+        CP      'Y'
+        JR      NZ,.fk_cancel
+
+        CALL    active_ix
+        CALL    dir_bios_sel
+        LD      A,(file_src_drv)
+        CALL    bdos_set_drv
+        LD      A,(file_src_drv)
+        LD      C,A
+        LD      HL,file_src_name
+        LD      DE,fcb_src
+        CALL    file_set_fcb
+        LD      DE,fcb_src
+        LD      C,F_DELETE
+        CALL    BDOS
+        CP      0FFh
+        JR      Z,.fk_fail
+
+        LD      A,1
+        LD      (file_dirty),A
+        CALL    active_ix
+        CALL    dir_load
+        CALL    other_ix
+        LD      A,(IX+P_DRIVE)
+        LD      HL,file_src_drv
+        CP      (HL)
+        JR      NZ,.fk_ok
+        CALL    dir_load
+.fk_ok:
+        LD      DE,msg_deleted
+        LD      (file_msg),DE
+        RET
+
+.fk_nofile:
+        LD      DE,msg_nofile
+        JR      .fk_ret
+.fk_cancel:
+        LD      DE,msg_cancel
+        JR      .fk_ret
+.fk_fail:
+        LD      DE,msg_delfail
+.fk_ret:
         LD      (file_msg),DE
         RET
 
@@ -490,5 +556,9 @@ msg_copyfail:   DB      "Copy failed$"
 msg_diskfull:   DB      "Disk full$"
 msg_renamed:    DB      "Renamed$"
 msg_renamefail: DB      "Rename failed$"
+msg_delete:     DB      "Delete $"
+msg_yn:         DB      "? Y/N $"
+msg_deleted:    DB      "Deleted$"
+msg_delfail:    DB      "Delete failed$"
 msg_exists:     DB      "File exists$"
 msg_samename:   DB      "Same name$"

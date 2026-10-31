@@ -64,6 +64,8 @@ main_loop:
         JP      Z,do_copy
         CP      KEY_F6
         JP      Z,do_rename
+        CP      KEY_F8
+        JP      Z,do_delete
         ; stubs reserved for later in iter 3
         CP      KEY_F4
         JP      Z,do_edit
@@ -105,6 +107,10 @@ do_copy:
 
 do_rename:
         CALL    file_rename
+        JR      do_file_done
+
+do_delete:
+        CALL    file_delete
 do_file_done:
         LD      A,(file_dirty)
         OR      A
