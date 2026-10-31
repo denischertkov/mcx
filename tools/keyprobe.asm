@@ -35,10 +35,13 @@ main_loop:
         CP      CTRL_C
         JP      Z,do_exit
 
+        ; BDOS calls clobber AF — save the first key byte before printing.
+        PUSH    AF
         LD      DE,msg_prefix
         CALL    bdos_print
+        POP     AF
 
-        CALL    print_hex_byte          ; first byte already in A
+        CALL    print_hex_byte          ; first byte in A
         CALL    drain_sequence
 
         LD      DE,msg_crlf
@@ -134,7 +137,8 @@ hex_digit:
 msg_banner:
         DB      "MCX KEYPROBE - press keys; Ctrl-C to quit",CR,LF
         DB      "Each line = raw bytes for one key (hex)",CR,LF
-        DB      "Try: arrows F1-F10 Alt-F1 Alt-F2 Tab Enter BS Del",CR,LF
+        DB      "Try: arrows F1-F10 Tab Enter BS Del",CR,LF
+        DB      "Also try Ctrl-L Ctrl-R (drive select fallback)",CR,LF
         DB      "$"
 
 msg_prefix:

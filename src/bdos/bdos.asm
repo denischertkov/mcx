@@ -9,6 +9,11 @@
 ;   bdos_conin    wait for character → A
 ;   bdos_conin_nb non-blocking raw input (func 6) → A=0 if none
 ;   bdos_exit     warm boot back to CCP
+;   bdos_get_drv  current drive → A (0=A)
+;   bdos_set_drv  A = drive (0=A)
+;   bdos_set_dma  DE = DMA address
+;   bdos_sfirst   DE = FCB → A = 0..3 code or 0FFh
+;   bdos_snext    DE → same FCB as sfirst → A = 0..3 or 0FFh
 ;==============================================================================
 
         INCLUDE "include/cpm.inc"
@@ -99,3 +104,74 @@ bdos_conin_nb:
 bdos_exit:
         LD      C,F_SYSRESET
         JP      BDOS
+
+;------------------------------------------------------------------------------
+; bdos_get_drv — get current default drive → A (0=A:)
+;------------------------------------------------------------------------------
+bdos_get_drv:
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      C,DRV_GET
+        CALL    BDOS
+        POP     HL
+        POP     DE
+        POP     BC
+        RET
+
+;------------------------------------------------------------------------------
+; bdos_set_drv — set current default drive; A = 0=A:
+;------------------------------------------------------------------------------
+bdos_set_drv:
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      E,A
+        LD      C,DRV_SET
+        CALL    BDOS
+        POP     HL
+        POP     DE
+        POP     BC
+        RET
+
+;------------------------------------------------------------------------------
+; bdos_set_dma — set DMA address from DE
+;------------------------------------------------------------------------------
+bdos_set_dma:
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      C,F_DMAOFF
+        CALL    BDOS
+        POP     HL
+        POP     DE
+        POP     BC
+        RET
+
+;------------------------------------------------------------------------------
+; bdos_sfirst — search first; DE → FCB; A=0..3 directory code or 0FFh=none
+;------------------------------------------------------------------------------
+bdos_sfirst:
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      C,F_SFIRST
+        CALL    BDOS
+        POP     HL
+        POP     DE
+        POP     BC
+        RET
+
+;------------------------------------------------------------------------------
+; bdos_snext — search next; DE → FCB (same as sfirst); A=0..3 or 0FFh=none
+;------------------------------------------------------------------------------
+bdos_snext:
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      C,F_SNEXT
+        CALL    BDOS
+        POP     HL
+        POP     DE
+        POP     BC
+        RET
