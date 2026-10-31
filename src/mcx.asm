@@ -108,7 +108,11 @@ do_up:
         LD      D,(IX+P_CURSOR+1)
         LD      C,(IX+P_SCROLL)
         LD      B,(IX+P_SCROLL+1)
+        PUSH    DE
+        PUSH    BC
         CALL    panel_cursor_up
+        POP     BC
+        POP     DE
         CALL    screen_nav_update
         JP      main_loop
 
@@ -118,7 +122,11 @@ do_down:
         LD      D,(IX+P_CURSOR+1)
         LD      C,(IX+P_SCROLL)
         LD      B,(IX+P_SCROLL+1)
+        PUSH    DE
+        PUSH    BC
         CALL    panel_cursor_down
+        POP     BC
+        POP     DE
         CALL    screen_nav_update
         JP      main_loop
 
