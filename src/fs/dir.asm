@@ -4,12 +4,12 @@
 ; Public entry points:
 ;   dir_load      IX → panel struct; fills drive's file names, resets cursor
 ;
-; Each entry is NAME_LEN (11) bytes: 8-char name + 3-char type, space-padded.
+; Each stored entry is NAME_LEN (11) bytes, FCB-style, attribute bit7 cleared.
 ;
-; Notes on Search First/Next (BDOS 17/18):
-;   Some CP/M 2.2 builds rewrite the matched name into the FCB, which breaks
-;   subsequent wildcard Search Next. Before every SNEXT we restore "????????.???"
-;   in F1..T3 but keep EX/S1/S2 (search continuation state) intact.
+; Multi-extent files (e.g. ZMC.COM with 161 records) produce several directory
+; entries. We keep the first spelling of each name and ignore duplicates, rather
+; than filtering on EX alone (EX=0 can be skipped by Search Next on some BDOS
+; builds after wildcard restore, leaving only EX≠0 which a naive filter drops).
 ;==============================================================================
 
         INCLUDE "include/cpm.inc"
@@ -57,21 +57,20 @@ dir_load:
         LD      DE,dir_dma
         ADD     HL,DE
 
-        ; Keep only primary extent (EX == 0 at entry+12)
-        PUSH    HL
-        LD      DE,12
-        ADD     HL,DE
+        ; Skip empty/deleted (user byte E5h)
         LD      A,(HL)
-        POP     HL
-        OR      A
-        JR      NZ,.dl_next
+        CP      0E5h
+        JR      Z,.dl_next
 
-        INC     HL                      ; HL → 11-char name (skip user byte)
-        CALL    dir_append_name
+        INC     HL                      ; HL → 11-char name (+ attrs in bit7)
+        CALL    dir_take_name           ; copy to dir_nb, strip attrs
+        CALL    dir_find_name           ; CY set if already listed
+        JR      C,.dl_next
+        CALL    dir_append_buf          ; append dir_nb
         JR      C,.dl_done              ; panel full
 
 .dl_next:
-        CALL    dir_restore_wild        ; keep EX/S1/S2, put '?' back in name
+        CALL    dir_restore_wild        ; '?' back; keep EX/S1/S2
         LD      DE,dir_fcb
         LD      C,F_SNEXT
         CALL    BDOS
@@ -87,7 +86,7 @@ dir_load:
         RET
 
 ;------------------------------------------------------------------------------
-; dir_init_fcb — drive from IX, ambiguous name, zero EX..end
+; dir_init_fcb — zero FCB, set drive, ambiguous name
 ;------------------------------------------------------------------------------
 dir_init_fcb:
         LD      HL,dir_fcb
@@ -97,14 +96,13 @@ dir_init_fcb:
         LD      (HL),A
         INC     HL
         DJNZ    .di_z
-
         LD      A,(IX+P_DRIVE)
-        INC     A                       ; 1=A:
+        INC     A
         LD      (dir_fcb+FCB_DR),A
-        ; fall through to wild name
+        ; fall through
 
 ;------------------------------------------------------------------------------
-; dir_restore_wild — F1..T3 := '?'; leaves DR and EX/S1/S2 alone
+; dir_restore_wild — F1..T3 := '?'; DR and EX/S1/S2 untouched
 ;------------------------------------------------------------------------------
 dir_restore_wild:
         LD      HL,dir_fcb+FCB_F1
@@ -116,9 +114,80 @@ dir_restore_wild:
         RET
 
 ;------------------------------------------------------------------------------
-; dir_append_name — HL → 11-char name; IX = panel; CY if full
+; dir_take_name — HL → 11 raw dir name; copy to dir_nb with bit7 cleared
 ;------------------------------------------------------------------------------
-dir_append_name:
+dir_take_name:
+        PUSH    BC
+        PUSH    DE
+        LD      DE,dir_nb
+        LD      B,11
+.dtn:
+        LD      A,(HL)
+        AND     7Fh
+        LD      (DE),A
+        INC     HL
+        INC     DE
+        DJNZ    .dtn
+        POP     DE
+        POP     BC
+        RET
+
+;------------------------------------------------------------------------------
+; dir_find_name — search panel for dir_nb; CY = already present
+;------------------------------------------------------------------------------
+dir_find_name:
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      C,(IX+P_COUNT)
+        LD      B,(IX+P_COUNT+1)
+        LD      A,B
+        OR      C
+        JR      Z,.df_miss
+        PUSH    IX
+        POP     HL
+        LD      DE,P_NAMES
+        ADD     HL,DE                   ; HL → first stored name
+.df_loop:
+        PUSH    BC
+        PUSH    HL
+        LD      DE,dir_nb
+        LD      B,11
+.df_cmp:
+        LD      A,(DE)
+        CP      (HL)
+        JR      NZ,.df_next
+        INC     DE
+        INC     HL
+        DJNZ    .df_cmp
+        ; match
+        POP     HL
+        POP     BC
+        POP     HL
+        POP     DE
+        POP     BC
+        SCF
+        RET
+.df_next:
+        POP     HL
+        LD      DE,DIR_ENTRY_SIZE
+        ADD     HL,DE
+        POP     BC
+        DEC     BC
+        LD      A,B
+        OR      C
+        JR      NZ,.df_loop
+.df_miss:
+        POP     HL
+        POP     DE
+        POP     BC
+        OR      A                       ; NC = not found
+        RET
+
+;------------------------------------------------------------------------------
+; dir_append_buf — append dir_nb to panel; CY if full
+;------------------------------------------------------------------------------
+dir_append_buf:
         PUSH    BC
         PUSH    DE
         PUSH    HL
@@ -137,16 +206,14 @@ dir_append_name:
         LD      E,L
         LD      D,H
         ADD     HL,HL
-        ADD     HL,DE                   ; count*12
+        ADD     HL,DE                   ; *12
         PUSH    IX
         POP     DE
         ADD     HL,DE
         LD      DE,P_NAMES
         ADD     HL,DE
-        EX      DE,HL                   ; DE = dest
-
-        POP     HL
-        PUSH    HL
+        EX      DE,HL
+        LD      HL,dir_nb
         LD      BC,NAME_LEN
         LDIR
         XOR     A
@@ -171,6 +238,6 @@ dir_append_name:
         SCF
         RET
 
-; Private DMA — avoid 0080h (command tail / shared default)
+dir_nb:         DS      11
 dir_dma:        DS      128
 dir_fcb:        DS      FCB_SIZE

@@ -93,7 +93,7 @@ status_prompt_drv:
         RET
 
 msg_fkeys:
-        DB      "MCX0.2b 1Help 3View 4Edit 5Copy 6Ren 10Quit"
+        DB      "MCX0.2c 1Help 3View 4Edit 5Copy 6Ren 10Quit"
         DB      " ^L/^R drive Tab$"
 
 msg_drv_prompt:
