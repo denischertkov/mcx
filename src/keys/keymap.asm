@@ -116,9 +116,9 @@ keymap_lookup_csi:
         JR      NZ,.cn17
         LD      A,KEY_F6
         RET
-.cn17:  CP      17
+.cn17:  CP      17                       ; xterm/vt220 F6 — 16~ is skipped
         JR      NZ,.cn18
-        LD      A,KEY_F7
+        LD      A,KEY_F6
         RET
 .cn18:  CP      18
         JR      NZ,.cn19

@@ -1,8 +1,8 @@
 ;==============================================================================
 ; fs/file.asm — copy and rename the file under the cursor
 ;
-;   file_copy     F5. Other panel's drive, same name. If both panels show
-;                 the same drive, asks for a new name. Overwrite is confirmed.
+;   file_copy     F5. Same name onto the other panel's drive.
+;                 Same drive is refused (that would be a rename — use F6).
 ;   file_rename   F6. New name on the active panel's drive.
 ;
 ; On return (file_msg) is a $-string for the status line. (file_dirty) ≠ 0
@@ -26,26 +26,10 @@ file_copy:
         LD      A,(IX+P_DRIVE)
         LD      (file_dst_drv),A
 
-        LD      HL,file_src_name
-        LD      DE,file_disp
-        CALL    panel_fmt_name
-
         LD      A,(file_src_drv)
         LD      HL,file_dst_drv
         CP      (HL)
-        JR      NZ,.fc_same
-
-        LD      DE,msg_copy_as
-        LD      HL,file_disp
-        CALL    status_edit_name
-        JR      C,.fc_cancel
-        LD      HL,name_edit
-        LD      DE,file_dst_name
-        CALL    file_parse_name
-        JR      C,.fc_bad
-        CALL    file_names_eq
-        JR      Z,.fc_itself
-        JR      .fc_exists
+        JR      Z,.fc_samedrv
 
 .fc_same:
         LD      HL,file_src_name
@@ -84,6 +68,9 @@ file_copy:
         OR      A
         RET
 
+.fc_samedrv:
+        LD      DE,msg_samedrv
+        JR      .fc_ret
 .fc_nofile:
         LD      DE,msg_nofile
         JR      .fc_ret
@@ -490,7 +477,7 @@ fcb_ren:        DS      FCB_SIZE
 fcb_probe:      DS      FCB_SIZE
 file_dma:       DS      128
 
-msg_copy_as:    DB      "Copy as: $"
+msg_samedrv:    DB      "Same drive — pick another on the other panel, or F6$"
 msg_rename:     DB      "Rename to: $"
 msg_overwrite:  DB      "Overwrite? Y/N $"
 msg_copying:    DB      "Copying...$"
