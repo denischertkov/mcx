@@ -7,7 +7,6 @@
 ;   term_cup      B=row (1..24), C=col (1..80) — CUP
 ;   term_rev_on   reverse video on (SGR 7)
 ;   term_rev_off  reverse video off (SGR 0)
-;   term_cursor_off / term_cursor_on — hide/show cursor (VT100)
 ;   term_puts     HL → zero-terminated string via console
 ;
 ; Depends on: bdos/bdos.asm (bdos_conout, bdos_print)
@@ -63,44 +62,20 @@ term_cup:
         RET
 
 ;------------------------------------------------------------------------------
-; term_rev_on / term_rev_off — SGR 7 / SGR 0+27 via CONOUT (ATTRTEST path)
-; Preserve AF. Off sends both [0m and [27m (ATTRTEST T1+T2).
-; Panels: reverse only the cursor row. Never in ui/drive.asm.
+; term_rev_on / term_rev_off — SGR reverse / reset
 ;------------------------------------------------------------------------------
 term_rev_on:
-        PUSH    AF
-        LD      A,ESC
-        CALL    bdos_conout
-        LD      A,'['
-        CALL    bdos_conout
-        LD      A,'7'
-        CALL    bdos_conout
-        LD      A,'m'
-        CALL    bdos_conout
-        POP     AF
+        PUSH    DE
+        LD      DE,ansi_rev_on
+        CALL    bdos_print
+        POP     DE
         RET
 
 term_rev_off:
-        PUSH    AF
-        LD      A,ESC
-        CALL    bdos_conout
-        LD      A,'['
-        CALL    bdos_conout
-        LD      A,'0'
-        CALL    bdos_conout
-        LD      A,'m'
-        CALL    bdos_conout
-        LD      A,ESC
-        CALL    bdos_conout
-        LD      A,'['
-        CALL    bdos_conout
-        LD      A,'2'
-        CALL    bdos_conout
-        LD      A,'7'
-        CALL    bdos_conout
-        LD      A,'m'
-        CALL    bdos_conout
-        POP     AF
+        PUSH    DE
+        LD      DE,ansi_rev_off
+        CALL    bdos_print
+        POP     DE
         RET
 
 ;------------------------------------------------------------------------------
@@ -153,3 +128,5 @@ term_put_dec:
 ; --- ANSI string constants ($-terminated for BDOS func 9) --------------------
 ansi_cls:       DB      ESC,"[2J",ESC,"[H$"
 ansi_home:      DB      ESC,"[H$"
+ansi_rev_on:    DB      ESC,"[7m$"
+ansi_rev_off:   DB      ESC,"[0m$"

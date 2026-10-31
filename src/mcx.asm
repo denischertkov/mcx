@@ -90,36 +90,28 @@ do_help:
         JP      main_loop
 
 ;------------------------------------------------------------------------------
-; do_tab — switch active panel (dirty redraw — no CLS)
+; do_tab — switch active panel (full redraw, same painter as the first shell)
 ;------------------------------------------------------------------------------
 do_tab:
         LD      A,(active_panel)
         XOR     1
         LD      (active_panel),A
-        CALL    screen_tab_switch
+        CALL    screen_draw_all
         JP      main_loop
 
 ;------------------------------------------------------------------------------
-; do_up / do_down — move cursor; dirty update when scroll unchanged
+; do_up / do_down — move cursor, then full redraw
 ;------------------------------------------------------------------------------
 do_up:
         CALL    active_ix
-        LD      E,(IX+P_CURSOR)
-        LD      D,(IX+P_CURSOR+1)
-        LD      C,(IX+P_SCROLL)
-        LD      B,(IX+P_SCROLL+1)
         CALL    panel_cursor_up
-        CALL    screen_nav_update
+        CALL    screen_draw_all
         JP      main_loop
 
 do_down:
         CALL    active_ix
-        LD      E,(IX+P_CURSOR)
-        LD      D,(IX+P_CURSOR+1)
-        LD      C,(IX+P_SCROLL)
-        LD      B,(IX+P_SCROLL+1)
         CALL    panel_cursor_down
-        CALL    screen_nav_update
+        CALL    screen_draw_all
         JP      main_loop
 
 ;------------------------------------------------------------------------------
