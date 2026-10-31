@@ -27,6 +27,8 @@ Calibrated with fixed KEYPROBE on real hardware (2026-10-31).
 | Del | `1B 5B 33 7E` | CSI `3~` |
 | PgUp | `1B 5B 35 7E` | CSI `5~` |
 | PgDn | `1B 5B 36 7E` | CSI `6~` |
+| Home | `1B 5B 48` or `1B 4F 48` | CSI `H` / SS3 `H`; also `1~` and `7~` |
+| End | `1B 5B 46` or `1B 4F 46` | CSI `F` / SS3 `F`; also `4~` and `8~` |
 | Ctrl-L | `0C` | left panel drive select |
 | Ctrl-R | `12` | right panel drive select |
 | Ctrl-C | `03` | |

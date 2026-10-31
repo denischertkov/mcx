@@ -25,10 +25,11 @@ screen_draw_all:
 
         CALL    term_rev_off
         CALL    term_cls
+        CALL    screen_draw_frame
 
         ; left panel
         LD      IX,panel_left
-        LD      C,1
+        LD      C,PANEL_LEFT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -37,23 +38,9 @@ screen_draw_all:
 .sd_left_inact:
         CALL    panel_draw
 
-        ; vertical separator
-        LD      B,1
-.sd_sep:
-        PUSH    BC
-        LD      C,40
-        CALL    term_cup
-        LD      A,'|'
-        CALL    bdos_conout
-        POP     BC
-        INC     B
-        LD      A,B
-        CP      23
-        JR      C,.sd_sep
-
         ; right panel
         LD      IX,panel_right
-        LD      C,41
+        LD      C,PANEL_RIGHT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -84,7 +71,7 @@ screen_tab_switch:
         CALL    term_rev_off
 
         LD      IX,panel_left
-        LD      C,1
+        LD      C,PANEL_LEFT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -93,7 +80,7 @@ screen_tab_switch:
 .st_lh: CALL    panel_draw_header
 
         LD      IX,panel_right
-        LD      C,41
+        LD      C,PANEL_RIGHT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -104,7 +91,7 @@ screen_tab_switch:
         LD      IX,panel_left
         LD      L,(IX+P_CURSOR)
         LD      H,(IX+P_CURSOR+1)
-        LD      C,1
+        LD      C,PANEL_LEFT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -115,7 +102,7 @@ screen_tab_switch:
         LD      IX,panel_right
         LD      L,(IX+P_CURSOR)
         LD      H,(IX+P_CURSOR+1)
-        LD      C,41
+        LD      C,PANEL_RIGHT_COL
         LD      A,(active_panel)
         OR      A
         LD      A,0
@@ -182,9 +169,64 @@ screen_nav_update:
 screen_active_col:
         LD      A,(active_panel)
         OR      A
-        LD      C,1
+        LD      C,PANEL_LEFT_COL
         RET     Z
-        LD      C,41
+        LD      C,PANEL_RIGHT_COL
+        RET
+
+;------------------------------------------------------------------------------
+; screen_draw_frame — ASCII box around both panels.
+; Row 1 and row 22 are '+---+---+', columns 1, 40 and 80 are '|'.
+;------------------------------------------------------------------------------
+screen_draw_frame:
+        LD      B,1
+        CALL    frame_horiz
+        LD      B,FRAME_BOTTOM
+        CALL    frame_horiz
+        LD      B,2
+.sf_vert:
+        PUSH    BC
+        LD      C,1
+        CALL    frame_bar
+        LD      C,PANEL_GAP_COL
+        CALL    frame_bar
+        LD      C,SCR_COLS
+        CALL    frame_bar
+        POP     BC
+        INC     B
+        LD      A,B
+        CP      FRAME_BOTTOM
+        JR      C,.sf_vert
+        RET
+
+; B = row. '+', dashes, '+', dashes, '+'.
+frame_horiz:
+        LD      C,1
+        CALL    term_cup
+        LD      A,'+'
+        CALL    bdos_conout
+        LD      B,PANEL_WIDTH
+        CALL    frame_dash
+        LD      A,'+'
+        CALL    bdos_conout
+        LD      B,PANEL_WIDTH_R
+        CALL    frame_dash
+        LD      A,'+'
+        CALL    bdos_conout
+        RET
+
+; B = row, C = column.
+frame_bar:
+        CALL    term_cup
+        LD      A,'|'
+        CALL    bdos_conout
+        RET
+
+; B = count of '-' . BDOS clobbers A.
+frame_dash:
+.fd:    LD      A,'-'
+        CALL    bdos_conout
+        DJNZ    .fd
         RET
 
 sn_col:         DB      0

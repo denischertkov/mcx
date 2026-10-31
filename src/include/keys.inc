@@ -20,6 +20,8 @@ KEY_LEFT        EQU     83h
 KEY_DEL         EQU     84h
 KEY_PGUP        EQU     85h
 KEY_PGDN        EQU     86h
+KEY_HOME        EQU     87h
+KEY_END         EQU     88h
 
 ; --- function keys -----------------------------------------------------------
 KEY_F1          EQU     90h
