@@ -4,16 +4,21 @@
 SJASMPLUS ?= $(shell command -v sjasmplus 2>/dev/null || echo $(HOME)/.local/bin/sjasmplus)
 SJFLAGS   := --nologo -I src
 
-.PHONY: all clean keyprobe mcx
+.PHONY: all clean keyprobe mcx attrtest
 
-all: keyprobe mcx
+all: keyprobe mcx attrtest
 
 keyprobe: build/KEYPROBE.COM
 mcx: build/MCX.COM
+attrtest: build/ATTRTEST.COM
 
 build/KEYPROBE.COM: tools/keyprobe.asm src/include/cpm.inc src/bdos/bdos.asm src/term/ansi.asm
 	mkdir -p build
 	$(SJASMPLUS) $(SJFLAGS) tools/keyprobe.asm
+
+build/ATTRTEST.COM: tools/attrtest.asm src/include/cpm.inc src/bdos/bdos.asm
+	mkdir -p build
+	$(SJASMPLUS) $(SJFLAGS) tools/attrtest.asm
 
 MCX_SRC := src/mcx.asm \
 	src/include/cpm.inc src/include/keys.inc src/include/mcx.inc \
