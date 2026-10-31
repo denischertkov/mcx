@@ -93,8 +93,8 @@ status_prompt_drv:
         RET
 
 msg_fkeys:
-        DB      "1Help  3View  4Edit  5Copy  6Ren  10Quit"
-        DB      "   ^L/^R drive  Tab panel$"
+        DB      "MCX0.2b 1Help 3View 4Edit 5Copy 6Ren 10Quit"
+        DB      " ^L/^R drive Tab$"
 
 msg_drv_prompt:
         DB      "Drive (A-P), Esc=cancel: $"
