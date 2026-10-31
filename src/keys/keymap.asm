@@ -105,8 +105,16 @@ keymap_lookup_csi:
         ; HL = number
         LD      A,L
         CP      3
-        JR      NZ,.cn15
+        JR      NZ,.cn5
         LD      A,KEY_DEL
+        RET
+.cn5:   CP      5                        ; PgUp  ESC [ 5 ~
+        JR      NZ,.cn6
+        LD      A,KEY_PGUP
+        RET
+.cn6:   CP      6                        ; PgDn  ESC [ 6 ~
+        JR      NZ,.cn15
+        LD      A,KEY_PGDN
         RET
 .cn15:  CP      15                       ; common VT220 F5
         JR      NZ,.cn16

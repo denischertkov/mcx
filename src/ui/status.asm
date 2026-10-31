@@ -291,7 +291,7 @@ se_prompt:      DW      0
 name_edit:      DS      13
 
 msg_fkeys:
-        DB      "MCX0.4  1Help 3View 4Edit 5Copy 6Ren 10Quit"
+        DB      "MCX0.4a 1Help 3View 4Edit 5Copy 6Ren 10Quit"
         DB      " ^L/^R drive Tab$"
 
 msg_drv_prompt:

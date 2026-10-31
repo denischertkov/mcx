@@ -46,7 +46,7 @@ keys_get:
         CALL    keymap_lookup_vt52
         CP      KEY_NONE
         RET     NZ
-        LD      A,KEY_ESC
+        LD      A,KEY_NONE
         RET
 
 ; CSI: ESC [ ... letter-or-tilde
@@ -72,7 +72,7 @@ keys_get:
 .csi_cont:
         DJNZ    .csi_loop
 .csi_abort:
-        LD      A,KEY_ESC
+        LD      A,KEY_NONE
         RET
 .csi_done:
         ; HL points past last byte; compute length
@@ -82,9 +82,6 @@ keys_get:
         LD      B,L                     ; B = length
         LD      HL,csi_buf
         CALL    keymap_lookup_csi
-        CP      KEY_NONE
-        RET     NZ
-        LD      A,KEY_ESC
         RET
 
 ; SS3: ESC O X
@@ -96,9 +93,6 @@ keys_get:
         RET
 .ss3_got:
         CALL    keymap_lookup_ss3
-        CP      KEY_NONE
-        RET     NZ
-        LD      A,KEY_ESC
         RET
 
 ;------------------------------------------------------------------------------

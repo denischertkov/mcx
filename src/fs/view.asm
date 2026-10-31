@@ -2,7 +2,8 @@
 ; fs/view.asm — F3 text view of the file under the cursor
 ;
 ; Reads the file into the free TPA above the stack (stops at Ctrl-Z).
-; Space/Down = next page, Up = previous, Esc = back to the panels.
+; Up/Down scroll one line. PgUp/PgDn and Space flip a page.
+; Only a real Esc (not an unknown CSI sequence) leaves the viewer.
 ;==============================================================================
 
         INCLUDE "include/cpm.inc"
@@ -26,13 +27,18 @@ view_show:
         LD      HL,0
         LD      (view_pos),HL
 .vs_page:
+        LD      A,VIEW_ROWS
+        LD      (view_rows),A
         CALL    term_rev_off
         CALL    term_cls
         LD      A,1
         LD      (view_draw),A
         CALL    view_walk
         CALL    view_footer
+.vs_key:
         CALL    keys_get
+        CP      KEY_NONE
+        JR      Z,.vs_key
         CP      KEY_ESC
         RET     Z
         CP      KEY_CTRL_C
@@ -40,33 +46,59 @@ view_show:
         CP      KEY_F10
         RET     Z
         CP      KEY_UP
-        JR      Z,.vs_up
+        JR      Z,.vs_line_up
         CP      KEY_DOWN
+        JR      Z,.vs_line_dn
+        CP      KEY_PGUP
+        JR      Z,.vs_up
+        CP      KEY_PGDN
         JR      Z,.vs_dn
         CP      ' '
         JR      Z,.vs_dn
-        CP      KEY_ENTER
-        JR      Z,.vs_dn
-        JR      .vs_page
+        JR      .vs_key
 
 .vs_dn:
         LD      A,(view_eof)
         OR      A
-        JR      NZ,.vs_page
+        JR      NZ,.vs_key
         LD      HL,(view_next)
         LD      DE,(view_pos)
         OR      A
         SBC     HL,DE
-        JR      Z,.vs_page
+        JR      Z,.vs_key
         LD      HL,(view_next)
         LD      (view_pos),HL
         JR      .vs_page
 
+.vs_line_dn:
+        LD      A,(view_eof)
+        OR      A
+        JR      NZ,.vs_key
+        LD      A,1
+        LD      (view_rows),A
+        XOR     A
+        LD      (view_draw),A
+        CALL    view_walk
+        LD      HL,(view_next)
+        LD      DE,(view_pos)
+        OR      A
+        SBC     HL,DE
+        JR      Z,.vs_key
+        LD      HL,(view_next)
+        LD      (view_pos),HL
+        JR      .vs_page
+
+.vs_line_up:
+        LD      A,1
+        JR      .vs_up_n
 .vs_up:
+        LD      A,VIEW_ROWS
+.vs_up_n:
+        LD      (view_rows),A
         LD      HL,(view_pos)
         LD      A,H
         OR      L
-        JR      Z,.vs_page
+        JR      Z,.vs_key
         LD      (view_goal),HL
         LD      HL,0
 .vs_up_lp:
@@ -214,7 +246,8 @@ view_walk:
         LD      (vw_off),HL
         LD      A,1
         LD      (vw_row),A
-        LD      B,VIEW_ROWS
+        LD      A,(view_rows)
+        LD      B,A
 .vw_row:
         PUSH    BC
         LD      A,(view_draw)
@@ -376,6 +409,7 @@ view_footer:
         RET
 
 view_draw:      DB      0
+view_rows:      DB      VIEW_ROWS
 view_trunc:     DB      0
 view_eof:       DB      0
 view_pos:       DW      0
@@ -394,5 +428,5 @@ view_fcb:       DS      FCB_SIZE
 
 msg_view:       DB      "View $"
 msg_view_cut:   DB      " [cut]$"
-msg_view_keys:  DB      " Space/Dn next   Up prev   Esc back$"
+msg_view_keys:  DB      " Up/Dn line  PgUp/PgDn page  Esc back$"
 msg_view_open:  DB      "Cannot open$"
