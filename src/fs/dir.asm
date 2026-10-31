@@ -35,10 +35,10 @@ dir_load:
 
         CALL    dir_init_fcb
 
-        ; The drive picker calls BIOS SELDSK directly. BDOS then treats the
-        ; disk as changed and Search First returns nothing — the second panel
-        ; on that same drive comes up empty. Log the drive out and back in.
-        CALL    dir_reset_drv
+        ; Function 14 does not touch the BIOS if this drive is already
+        ; current. The picker leaves the BIOS on the last probed disk, so
+        ; re-selecting the same drive used to read an empty directory.
+        CALL    dir_bios_sel
         LD      A,(IX+P_DRIVE)
         CALL    bdos_set_drv
 
@@ -93,22 +93,22 @@ dir_load:
         RET
 
 ;------------------------------------------------------------------------------
-; dir_reset_drv — BDOS 37, one bit for (IX+P_DRIVE)
+; dir_bios_sel — BIOS SELDSK of (IX+P_DRIVE), E=1 (already logged in)
 ;------------------------------------------------------------------------------
-dir_reset_drv:
+dir_bios_sel:
+        PUSH    IX
+        LD      HL,(0001h)
+        LD      DE,24                    ; WBOOT → SELDSK
+        ADD     HL,DE
         LD      A,(IX+P_DRIVE)
-        LD      DE,1
-        OR      A
-        JR      Z,.drd_go
-.drd_sh:
-        SLA     E
-        RL      D
-        DEC     A
-        JR      NZ,.drd_sh
-.drd_go:
-        LD      C,DRV_RESET
-        CALL    BDOS
+        LD      C,A
+        LD      E,1
+        CALL    dir_jp_hl
+        POP     IX
         RET
+
+dir_jp_hl:
+        JP      (HL)
 
 ;------------------------------------------------------------------------------
 ; dir_init_fcb — zero FCB, set drive, ambiguous name

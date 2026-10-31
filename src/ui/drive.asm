@@ -253,9 +253,13 @@ drive_probe:
         OR      A
         CALL    Z,drive_probe_login
 
-        ; Restore BDOS current drive — SELDSK probe leaves it on the last disk.
+        ; BDOS function 14 ignores a select of the current drive, so put
+        ; the BIOS back itself. The probe's last SELDSK is not that drive.
         LD      A,(drv_saved)
-        CALL    bdos_set_drv
+        LD      C,A
+        LD      E,1
+        LD      HL,(drv_bios_sel)
+        CALL    drive_jp_hl
 
         POP     HL
         POP     DE
