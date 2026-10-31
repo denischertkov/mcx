@@ -228,6 +228,7 @@ drive_probe:
 .dpr_lp:
         PUSH    AF
         LD      C,A
+        LD      E,1                      ; logged-in select; E=0 flags a new disk
         LD      HL,(drv_bios_sel)
         CALL    drive_jp_hl
         LD      A,H

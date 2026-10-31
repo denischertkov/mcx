@@ -35,6 +35,7 @@ F_WRITE         EQU     21              ; sequential write
 F_MAKE          EQU     22
 F_RENAME        EQU     23
 DRV_GET         EQU     25              ; get current disk (0=A)
+DRV_RESET       EQU     37              ; reset drives in DE bit vector
 F_DMAOFF        EQU     26              ; set DMA address
 F_USERNUM       EQU     32              ; get/set user number
 F_SYSRESET      EQU     0               ; system reset (warm boot)

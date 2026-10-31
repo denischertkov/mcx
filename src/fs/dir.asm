@@ -35,8 +35,10 @@ dir_load:
 
         CALL    dir_init_fcb
 
-        ; Select the panel drive via BDOS as well as FCB_DR — needed after
-        ; BIOS SELDSK probing in the drive picker, which can desync BDOS.
+        ; The drive picker calls BIOS SELDSK directly. BDOS then treats the
+        ; disk as changed and Search First returns nothing — the second panel
+        ; on that same drive comes up empty. Log the drive out and back in.
+        CALL    dir_reset_drv
         LD      A,(IX+P_DRIVE)
         CALL    bdos_set_drv
 
@@ -88,6 +90,24 @@ dir_load:
         POP     DE
         POP     BC
         POP     AF
+        RET
+
+;------------------------------------------------------------------------------
+; dir_reset_drv — BDOS 37, one bit for (IX+P_DRIVE)
+;------------------------------------------------------------------------------
+dir_reset_drv:
+        LD      A,(IX+P_DRIVE)
+        LD      DE,1
+        OR      A
+        JR      Z,.drd_go
+.drd_sh:
+        SLA     E
+        RL      D
+        DEC     A
+        JR      NZ,.drd_sh
+.drd_go:
+        LD      C,DRV_RESET
+        CALL    BDOS
         RET
 
 ;------------------------------------------------------------------------------
