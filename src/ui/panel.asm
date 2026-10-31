@@ -86,7 +86,6 @@ panel_draw_header:
         LD      A,C
         LD      (pd_col),A
         CALL    term_rev_off
-        CALL    term_gfx_off
         LD      B,1
         LD      A,(pd_col)
         LD      C,A

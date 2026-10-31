@@ -24,7 +24,6 @@ screen_draw_all:
         PUSH    IX
 
         CALL    term_rev_off
-        CALL    term_gfx_off
         CALL    term_cls
         CALL    screen_draw_frame
 
@@ -176,12 +175,10 @@ screen_active_col:
         RET
 
 ;------------------------------------------------------------------------------
-; screen_draw_frame — box around both panels. Row 1 top, row 22 bottom,
-; bars in columns 1, 40 and 80. Leaves G0 in US-ASCII.
-; DEC graphics: l q k / m j / x / w v
+; screen_draw_frame — ASCII box around both panels.
+; Row 1 and row 22 are '+---+---+', columns 1, 40 and 80 are '|'.
 ;------------------------------------------------------------------------------
 screen_draw_frame:
-        CALL    term_gfx_on
         LD      B,1
         CALL    frame_horiz
         LD      B,FRAME_BOTTOM
@@ -200,53 +197,36 @@ screen_draw_frame:
         LD      A,B
         CP      FRAME_BOTTOM
         JR      C,.sf_vert
-        CALL    term_gfx_off
         RET
 
-; B = row, graphics charset already on. Top uses l/w/k, bottom m/v/j.
+; B = row. '+', dashes, '+', dashes, '+'.
 frame_horiz:
-        PUSH    BC
         LD      C,1
         CALL    term_cup
-        LD      A,B
-        CP      1
-        LD      A,'l'
-        JR      Z,.fh_l
-        LD      A,'m'
-.fh_l:  CALL    bdos_conout
+        LD      A,'+'
+        CALL    bdos_conout
         LD      B,PANEL_WIDTH
-        CALL    frame_q
-        POP     BC
-        PUSH    BC
-        LD      A,B
-        CP      1
-        LD      A,'w'
-        JR      Z,.fh_m
-        LD      A,'v'
-.fh_m:  CALL    bdos_conout
+        CALL    frame_dash
+        LD      A,'+'
+        CALL    bdos_conout
         LD      B,PANEL_WIDTH_R
-        CALL    frame_q
-        POP     BC
-        LD      A,B
-        CP      1
-        LD      A,'k'
-        JR      Z,.fh_r
-        LD      A,'j'
-.fh_r:  CALL    bdos_conout
+        CALL    frame_dash
+        LD      A,'+'
+        CALL    bdos_conout
         RET
 
-; B = row, C = column. Graphics charset on.
+; B = row, C = column.
 frame_bar:
         CALL    term_cup
-        LD      A,'x'
+        LD      A,'|'
         CALL    bdos_conout
         RET
 
-; B = count of horizontal line chars. BDOS clobbers A.
-frame_q:
-.fq:    LD      A,'q'
+; B = count of '-' . BDOS clobbers A.
+frame_dash:
+.fd:    LD      A,'-'
         CALL    bdos_conout
-        DJNZ    .fq
+        DJNZ    .fd
         RET
 
 sn_col:         DB      0

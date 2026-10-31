@@ -7,8 +7,6 @@
 ;   term_cup      B=row (1..24), C=col (1..80) — CUP
 ;   term_rev_on   reverse video on (SGR 7)
 ;   term_rev_off  reverse video off (SGR 0)
-;   term_gfx_on   DEC line-drawing charset (G0)
-;   term_gfx_off  US-ASCII charset (G0)
 ;   term_puts     HL → zero-terminated string via console
 ;
 ; Depends on: bdos/bdos.asm (bdos_conout, bdos_print)
@@ -81,24 +79,6 @@ term_rev_off:
         RET
 
 ;------------------------------------------------------------------------------
-; term_gfx_on / term_gfx_off — VT100 special graphics / back to ASCII
-; Line chars while on: l q k m j x w v  (corners, horizontal, vertical, joints)
-;------------------------------------------------------------------------------
-term_gfx_on:
-        PUSH    DE
-        LD      DE,ansi_gfx_on
-        CALL    bdos_print
-        POP     DE
-        RET
-
-term_gfx_off:
-        PUSH    DE
-        LD      DE,ansi_gfx_off
-        CALL    bdos_print
-        POP     DE
-        RET
-
-;------------------------------------------------------------------------------
 ; term_puts — print zero-terminated string at HL
 ;------------------------------------------------------------------------------
 term_puts:
@@ -150,5 +130,3 @@ ansi_cls:       DB      ESC,"[2J",ESC,"[H$"
 ansi_home:      DB      ESC,"[H$"
 ansi_rev_on:    DB      ESC,"[7m$"
 ansi_rev_off:   DB      ESC,"[0m$"
-ansi_gfx_on:    DB      ESC,"(0$"
-ansi_gfx_off:   DB      ESC,"(B$"
