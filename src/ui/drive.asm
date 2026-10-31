@@ -84,9 +84,6 @@ drive_pick:
 .dp_cancel:
         LD      A,0FFh
 .dp_ret:
-        PUSH    AF
-        CALL    term_rev_off            ; ensure panels can use reverse again
-        POP     AF
         POP     HL
         POP     DE
         POP     BC
@@ -161,11 +158,22 @@ drive_menu_draw:
         LD      C,A
         LD      A,(drv_sel)
         CP      C
-        LD      A,' '
-        JR      NZ,.dmd_mark
-        LD      A,'*'
-.dmd_mark:
+        JR      NZ,.dmd_norm
+        LD      A,'>'
         CALL    bdos_conout
+        LD      A,'>'
+        CALL    bdos_conout
+        LD      A,'>'
+        CALL    bdos_conout
+        JR      .dmd_name
+.dmd_norm:
+        LD      A,' '
+        CALL    bdos_conout
+        LD      A,' '
+        CALL    bdos_conout
+        LD      A,' '
+        CALL    bdos_conout
+.dmd_name:
         POP     HL
         PUSH    HL
         LD      A,(HL)

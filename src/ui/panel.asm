@@ -2,22 +2,22 @@
 ; ui/panel.asm — draw one file panel and manage cursor/scroll
 ;
 ; Public entry points:
-;   panel_draw        IX → panel, C = left col (1-based), A≠0 if active
-;   panel_draw_header IX, C=col, A≠0 active — row 1 only
-;   panel_draw_index  IX, C=col, HL=file index, A≠0 highlight — one list row
-;   panel_cursor_up   IX → panel
-;   panel_cursor_down IX → panel
-;   panel_fmt_name    HL → 11-char FCB name, DE → dest buffer (13 bytes max)
+;   panel_draw / panel_draw_header / panel_draw_index
+;   panel_cursor_up / panel_cursor_down / panel_fmt_name
 ;
-; Cursor = reverse-video bar (as in early MCX0.2d). Drive menu must NOT use
-; SGR reverse — that leaked and stuck on this serial console.
+; Selection is ASCII-only. This console accepts SGR 7 (reverse) but does not
+; reliably clear it, so reverse leaks onto every visited row.
+; Cursor line:  ">>> NAME"
+; Other lines:  "    NAME"
+; Active hdr:   ">>> A: "
+; Inactive hdr: "    A: "
 ;==============================================================================
 
         INCLUDE "include/cpm.inc"
         INCLUDE "include/mcx.inc"
 
 ;------------------------------------------------------------------------------
-; panel_draw — IX=panel, C=start column (1 or 41), A=0 inactive / ≠0 active
+; panel_draw
 ;------------------------------------------------------------------------------
 panel_draw:
         PUSH    AF
@@ -97,17 +97,42 @@ panel_draw:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_put_line — HL → zstring, A≠0 = reverse bar across PANEL_WIDTH
+; panel_put_line — HL → name, A≠0 cursor (">>> ") / else ("    "); pad width
 ;------------------------------------------------------------------------------
 panel_put_line:
         PUSH    AF
         PUSH    BC
         PUSH    DE
         PUSH    HL
-        CALL    term_rev_off            ; start clean
-        OR      A
-        CALL    NZ,term_rev_on
         LD      B,PANEL_WIDTH
+        OR      A
+        JR      Z,.ppl_norm
+        LD      A,'>'
+        CALL    bdos_conout
+        DEC     B
+        LD      A,'>'
+        CALL    bdos_conout
+        DEC     B
+        LD      A,'>'
+        CALL    bdos_conout
+        DEC     B
+        LD      A,' '
+        CALL    bdos_conout
+        DEC     B
+        JR      .ppl_ch
+.ppl_norm:
+        LD      A,' '
+        CALL    bdos_conout
+        DEC     B
+        LD      A,' '
+        CALL    bdos_conout
+        DEC     B
+        LD      A,' '
+        CALL    bdos_conout
+        DEC     B
+        LD      A,' '
+        CALL    bdos_conout
+        DEC     B
 .ppl_ch:
         LD      A,B
         OR      A
@@ -128,7 +153,6 @@ panel_put_line:
         CALL    bdos_conout
         DJNZ    .ppl_sp
 .ppl_done:
-        CALL    term_rev_off            ; always clear reverse after the row
         POP     HL
         POP     DE
         POP     BC
@@ -136,7 +160,7 @@ panel_put_line:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_name_at_idx — IX=panel, (pd_idx)=index → HL → 11-char name
+; panel_name_at_idx
 ;------------------------------------------------------------------------------
 panel_name_at_idx:
         LD      HL,(pd_idx)
@@ -154,7 +178,7 @@ panel_name_at_idx:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_fmt_name — HL → 11 raw FCB name, DE → dest "NAME.EXT",0
+; panel_fmt_name
 ;------------------------------------------------------------------------------
 panel_fmt_name:
         PUSH    BC
@@ -214,7 +238,7 @@ panel_fmt_name:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_draw_header — IX=panel, C=col, A≠0 if active (reverse)
+; panel_draw_header — active ">>> A: " / inactive "    A: "
 ;------------------------------------------------------------------------------
 panel_draw_header:
         PUSH    AF
@@ -222,12 +246,26 @@ panel_draw_header:
         LD      (pd_active),A
         LD      A,C
         LD      (pd_col),A
-        CALL    term_rev_off
         LD      B,1
         CALL    term_cup
         LD      A,(pd_active)
         OR      A
-        CALL    NZ,term_rev_on
+        JR      Z,.pdh_inact
+        LD      A,'>'
+        CALL    bdos_conout
+        LD      A,'>'
+        CALL    bdos_conout
+        LD      A,'>'
+        CALL    bdos_conout
+        JR      .pdh_drv
+.pdh_inact:
+        LD      A,' '
+        CALL    bdos_conout
+        LD      A,' '
+        CALL    bdos_conout
+        LD      A,' '
+        CALL    bdos_conout
+.pdh_drv:
         LD      A,' '
         CALL    bdos_conout
         LD      A,(IX+P_DRIVE)
@@ -237,17 +275,14 @@ panel_draw_header:
         CALL    bdos_conout
         LD      A,' '
         CALL    bdos_conout
-        ; pad so dirty redraw clears old text
-        LD      A,' '
         CALL    bdos_conout
         CALL    bdos_conout
-        CALL    term_rev_off
         POP     BC
         POP     AF
         RET
 
 ;------------------------------------------------------------------------------
-; panel_draw_index — IX=panel, C=col, HL=file index, A≠0 highlight
+; panel_draw_index
 ;------------------------------------------------------------------------------
 panel_draw_index:
         PUSH    AF
@@ -303,7 +338,7 @@ panel_draw_index:
         RET
 
 ;------------------------------------------------------------------------------
-; panel_cursor_up / panel_cursor_down
+; panel_cursor_up / down
 ;------------------------------------------------------------------------------
 panel_cursor_up:
         LD      L,(IX+P_CURSOR)

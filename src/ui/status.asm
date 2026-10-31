@@ -21,17 +21,16 @@ status_draw_fkeys:
         LD      B,24
         LD      C,1
         CALL    term_cup
-        CALL    term_rev_off
-        CALL    term_rev_on
-        LD      DE,msg_fkeys
-        CALL    bdos_print
-        ; pad rest of row while still reversed, then clear attr
-        LD      B,20
-.sdf_pad:
+        LD      B,SCR_COLS
+.sdf_clr:
         LD      A,' '
         CALL    bdos_conout
-        DJNZ    .sdf_pad
-        CALL    term_rev_off
+        DJNZ    .sdf_clr
+        LD      B,24
+        LD      C,1
+        CALL    term_cup
+        LD      DE,msg_fkeys
+        CALL    bdos_print
         POP     DE
         POP     BC
         RET
@@ -102,7 +101,7 @@ status_prompt_drv:
         RET
 
 msg_fkeys:
-        DB      "MCX0.2i 1Help 3View 4Edit 5Copy 6Ren 10Quit"
+        DB      "MCX0.2j 1Help 3View 4Edit 5Copy 6Ren 10Quit"
         DB      " ^L/^R drive Tab$"
 
 msg_drv_prompt:
