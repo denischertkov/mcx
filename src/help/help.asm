@@ -34,10 +34,10 @@ help_text:
         DB      "  F5         copy to other panel (iter 3)",CR,LF
         DB      "  F6         rename (iter 3)",CR,LF
         DB      "  F10        quit to CP/M",CR,LF
-        DB      "  Ctrl-L     change LEFT panel drive",CR,LF
-        DB      "  Ctrl-R     change RIGHT panel drive",CR,LF
+        DB      "  Ctrl-L     LEFT panel: drive menu",CR,LF
+        DB      "  Ctrl-R     RIGHT panel: drive menu",CR,LF
         DB      CR,LF
-        DB      "Alt-F1/F2 are captured by the Linux host;",CR,LF
-        DB      "use Ctrl-L / Ctrl-R instead.",CR,LF
+        DB      "Drive menu: arrows/Enter, or letter A-P, Esc=cancel.",CR,LF
+        DB      "Alt-F1/F2 are captured by the Linux host.",CR,LF
         DB      CR,LF
         DB      "Press any key to return...$"

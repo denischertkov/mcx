@@ -7,6 +7,7 @@
 ;   term_cup      B=row (1..24), C=col (1..80) — CUP
 ;   term_rev_on   reverse video on (SGR 7)
 ;   term_rev_off  reverse video off (SGR 0)
+;   term_cursor_off / term_cursor_on — hide/show cursor (VT100)
 ;   term_puts     HL → zero-terminated string via console
 ;
 ; Depends on: bdos/bdos.asm (bdos_conout, bdos_print)
@@ -79,6 +80,23 @@ term_rev_off:
         RET
 
 ;------------------------------------------------------------------------------
+; term_cursor_off / term_cursor_on — DECTCEM (reduces redraw flicker)
+;------------------------------------------------------------------------------
+term_cursor_off:
+        PUSH    DE
+        LD      DE,ansi_curoff
+        CALL    bdos_print
+        POP     DE
+        RET
+
+term_cursor_on:
+        PUSH    DE
+        LD      DE,ansi_curon
+        CALL    bdos_print
+        POP     DE
+        RET
+
+;------------------------------------------------------------------------------
 ; term_puts — print zero-terminated string at HL
 ;------------------------------------------------------------------------------
 term_puts:
@@ -130,3 +148,5 @@ ansi_cls:       DB      ESC,"[2J",ESC,"[H$"
 ansi_home:      DB      ESC,"[H$"
 ansi_rev_on:    DB      ESC,"[7m$"
 ansi_rev_off:   DB      ESC,"[0m$"
+ansi_curoff:    DB      ESC,"[?25l$"
+ansi_curon:     DB      ESC,"[?25h$"

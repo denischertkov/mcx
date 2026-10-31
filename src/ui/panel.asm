@@ -3,6 +3,8 @@
 ;
 ; Public entry points:
 ;   panel_draw        IX → panel, C = left col (1-based), A≠0 if active
+;   panel_draw_header IX, C=col, A≠0 active — row 1 only
+;   panel_draw_index  IX, C=col, HL=file index, A≠0 highlight — one list row
 ;   panel_cursor_up   IX → panel
 ;   panel_cursor_down IX → panel
 ;   panel_fmt_name    HL → 11-char FCB name, DE → dest buffer (13 bytes max)
@@ -211,6 +213,108 @@ panel_fmt_name:
         LD      (DE),A
         POP     HL
         POP     BC
+        RET
+
+;------------------------------------------------------------------------------
+; panel_draw_header — IX=panel, C=col, A≠0 if active
+;------------------------------------------------------------------------------
+panel_draw_header:
+        PUSH    AF
+        PUSH    BC
+        LD      (pd_active),A
+        LD      A,C
+        LD      (pd_col),A
+        LD      B,1
+        CALL    term_cup
+        LD      A,(pd_active)
+        OR      A
+        CALL    NZ,term_rev_on
+        LD      A,' '
+        CALL    bdos_conout
+        LD      A,(IX+P_DRIVE)
+        ADD     A,'A'
+        CALL    bdos_conout
+        LD      A,':'
+        CALL    bdos_conout
+        LD      A,' '
+        CALL    bdos_conout
+        LD      A,(pd_active)
+        OR      A
+        CALL    NZ,term_rev_off
+        POP     BC
+        POP     AF
+        RET
+
+;------------------------------------------------------------------------------
+; panel_draw_index — IX=panel, C=col, HL=index, A≠0 highlight
+; Draws the screen row for that index if it is inside the scroll window.
+;------------------------------------------------------------------------------
+panel_draw_index:
+        PUSH    AF
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      (pd_hi),A
+        LD      A,C
+        LD      (pd_col),A
+        LD      (pd_idx),HL
+
+        ; row = 2 + (index - scroll); skip if out of window
+        LD      E,(IX+P_SCROLL)
+        LD      D,(IX+P_SCROLL+1)
+        OR      A
+        SBC     HL,DE
+        JR      C,.pdi_done              ; above window
+        LD      A,L
+        CP      PANEL_ROWS
+        JR      NC,.pdi_done             ; below window
+        ADD     A,2
+        LD      (pd_row),A
+
+        LD      B,A
+        LD      A,(pd_col)
+        LD      C,A
+        CALL    term_cup
+
+        LD      B,PANEL_WIDTH
+.pdi_clr:
+        LD      A,' '
+        CALL    bdos_conout
+        DJNZ    .pdi_clr
+
+        LD      A,(pd_row)
+        LD      B,A
+        LD      A,(pd_col)
+        LD      C,A
+        CALL    term_cup
+
+        ; beyond count?
+        LD      HL,(pd_idx)
+        LD      E,(IX+P_COUNT)
+        LD      D,(IX+P_COUNT+1)
+        OR      A
+        SBC     HL,DE
+        JR      NC,.pdi_done
+
+        LD      A,(pd_hi)
+        OR      A
+        CALL    NZ,term_rev_on
+
+        CALL    panel_name_at_idx
+        LD      DE,pd_nbuf
+        CALL    panel_fmt_name
+        LD      HL,pd_nbuf
+        CALL    term_puts
+
+        LD      A,(pd_hi)
+        OR      A
+        CALL    NZ,term_rev_off
+
+.pdi_done:
+        POP     HL
+        POP     DE
+        POP     BC
+        POP     AF
         RET
 
 ;------------------------------------------------------------------------------

@@ -90,35 +90,43 @@ do_help:
         JP      main_loop
 
 ;------------------------------------------------------------------------------
-; do_tab — switch active panel
+; do_tab — switch active panel (dirty redraw — no CLS)
 ;------------------------------------------------------------------------------
 do_tab:
         LD      A,(active_panel)
         XOR     1
         LD      (active_panel),A
-        CALL    screen_draw_all
+        CALL    screen_tab_switch
         JP      main_loop
 
 ;------------------------------------------------------------------------------
-; do_up / do_down — move cursor in active panel
+; do_up / do_down — move cursor; dirty update when scroll unchanged
 ;------------------------------------------------------------------------------
 do_up:
         CALL    active_ix
+        LD      E,(IX+P_CURSOR)
+        LD      D,(IX+P_CURSOR+1)
+        LD      C,(IX+P_SCROLL)
+        LD      B,(IX+P_SCROLL+1)
         CALL    panel_cursor_up
-        CALL    screen_draw_all
+        CALL    screen_nav_update
         JP      main_loop
 
 do_down:
         CALL    active_ix
+        LD      E,(IX+P_CURSOR)
+        LD      D,(IX+P_CURSOR+1)
+        LD      C,(IX+P_SCROLL)
+        LD      B,(IX+P_SCROLL+1)
         CALL    panel_cursor_down
-        CALL    screen_draw_all
+        CALL    screen_nav_update
         JP      main_loop
 
 ;------------------------------------------------------------------------------
-; do_drv_left / do_drv_right — Ctrl-L / Ctrl-R
+; do_drv_left / do_drv_right — Ctrl-L / Ctrl-R drive menu
 ;------------------------------------------------------------------------------
 do_drv_left:
-        CALL    status_prompt_drv
+        CALL    drive_pick
         CP      0FFh
         JR      Z,.ddl_cancel
         LD      (panel_left+P_DRIVE),A
@@ -129,7 +137,7 @@ do_drv_left:
         JP      main_loop
 
 do_drv_right:
-        CALL    status_prompt_drv
+        CALL    drive_pick
         CP      0FFh
         JR      Z,.ddr_cancel
         LD      (panel_right+P_DRIVE),A
@@ -254,6 +262,7 @@ panel_right:    DS      PANEL_BYTES
         INCLUDE "ui/panel.asm"
         INCLUDE "ui/status.asm"
         INCLUDE "ui/screen.asm"
+        INCLUDE "ui/drive.asm"
         INCLUDE "help/help.asm"
 
         DS      256

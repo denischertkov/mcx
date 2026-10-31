@@ -32,7 +32,8 @@ Calibrated with fixed KEYPROBE on real hardware (2026-10-31).
 
 Alt-F1/Alt-F2 never reach the serial session (Linux host grabs them).
 
-MCX uses **Ctrl-L** / **Ctrl-R**, then a drive letter `A`..`P`.
+MCX uses **Ctrl-L** / **Ctrl-R** to open a drive picker (available drives via
+BIOS SELDSK, arrows/Enter or letter, Esc cancels).
 
 ## Parser notes
 
