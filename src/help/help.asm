@@ -40,6 +40,7 @@ help_text:
         DB      "  Ctrl-R     RIGHT panel: drive menu",CR,LF
         DB      CR,LF
         DB      "Drive menu: arrows/Enter, or letter A-P, Esc=cancel.",CR,LF
-        DB      "Alt-F1/F2 are captured by the Linux host.",CR,LF
+        DB      CR,LF
+        DB      "(C) 20261030 Denis Chertkov, denis@chertkov.info",CR,LF
         DB      CR,LF
         DB      "Press any key to return...$"
